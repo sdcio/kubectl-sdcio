@@ -32,9 +32,9 @@ func main() {
 
 	root := &cobra.Command{
 		Use: "sdcio",
-		// Annotations: map[string]string{
-		// 	cobra.CommandDisplayNameAnnotation: "kubectl sdcio",
-		// },
+		Annotations: map[string]string{
+			cobra.CommandDisplayNameAnnotation: "kubectl sdcio",
+		},
 	}
 
 	blameCmd, err := sdcioCmd.NewCmdBlame(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
