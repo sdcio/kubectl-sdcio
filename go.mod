@@ -15,7 +15,7 @@ require (
 	github.com/sdcio/sdc-protos v0.0.41-0.20250522151043-b043fe2ef3dc
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.9
 	k8s.io/apimachinery v0.33.1
 	k8s.io/cli-runtime v0.33.1
 	k8s.io/client-go v0.33.1
