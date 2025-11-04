@@ -72,7 +72,7 @@ func (o *BlameOptions) Validate() error {
 	return nil
 }
 
-func (o *BlameOptions) Run(cmd *cobra.Command) error {
+func (o *BlameOptions) Run(_ *cobra.Command) error {
 	ctx := context.Background()
 	cl, err := client.NewConfigClient(o.restConfig)
 	if err != nil {
@@ -114,7 +114,10 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the blame config for")
-	cmd.MarkFlagRequired("target")
+	err := cmd.MarkFlagRequired("target")
+	if err != nil {
+		return nil, err
+	}
 
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {
 		return nil, err
