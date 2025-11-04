@@ -72,7 +72,7 @@ func (o *BlameOptions) Validate() error {
 	return nil
 }
 
-func (o *BlameOptions) Run(cmd *cobra.Command) error {
+func (o *BlameOptions) Run(_ *cobra.Command) error {
 	ctx := context.Background()
 	cl, err := client.NewConfigClient(o.restConfig)
 	if err != nil {
