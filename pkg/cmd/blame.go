@@ -114,7 +114,10 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the blame config for")
-	cmd.MarkFlagRequired("target")
+	err := cmd.MarkFlagRequired("target")
+	if err != nil {
+		return nil, err
+	}
 
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {
 		return nil, err
