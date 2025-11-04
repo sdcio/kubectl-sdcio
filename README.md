@@ -1,12 +1,14 @@
 # kubectl-sdcio
 
-kubectl-sdcio is the sdcio specific kubectl plugin.
+![sdc logo](https://docs.sdcio.dev/assets/logos/SDC-transparent-withname-100x133.png)
+
+kubectl-sdcio is the SDC specific kubectl plugin.
 
 ## subcommands
 kubectl-sdcio provides the following functionalities.
 
 ### blame
-The blame command provides a tree based view on the actual running device configuration of the given sdcio target.
+The blame command provides a tree based view on the actual running device configuration of the given SDC target.
 
 It takes the `--target` parameter, that defines which targets is to be displayed.
 
@@ -45,3 +47,13 @@ default.intent1-sros-sros    │         │       │   ├── 🍃 admin-st
 default.intent1-sros-sros    │         │       │   ├── 🍃 customer -> 1
 ...
 ```
+
+## Join us
+
+Have questions, ideas, bug reports or just want to chat? Come join [our discord server](https://discord.com/channels/1240272304294985800/1311031796372344894).
+
+## License and Code of Conduct
+
+Code is under the [Apache License 2.0](LICENSE), documentation is [CC BY 4.0](LICENSE-documentation).
+
+The SDC project is following the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md). More information and links about the CNCF Code of Conduct are [here](https://www.cncf.io/conduct/).
