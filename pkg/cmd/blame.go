@@ -28,11 +28,12 @@ import (
 )
 
 type BlameOptions struct {
-	namespace   string
-	target      string
-	filterLeaf  string
-	filterOwner string
-	filterPath  string
+	namespace       string
+	target          string
+	filterLeaf      string
+	filterOwner     string
+	filterPath      string
+	filterDeviation bool
 	MyOptions
 }
 
@@ -84,9 +85,10 @@ func (o *BlameOptions) Run(_ *cobra.Command) error {
 
 	// create a filter from options
 	filter := client.BlameFilter{
-		LeafName: o.filterLeaf,
-		Owner:    o.filterOwner,
-		Path:     o.filterPath,
+		LeafName:  o.filterLeaf,
+		Owner:     o.filterOwner,
+		Path:      o.filterPath,
+		Deviation: o.filterDeviation,
 	}
 
 	bt, err := cl.GetFilteredBlameTree(ctx, o.namespace, o.target, filter)
@@ -130,6 +132,7 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	cmd.Flags().StringVar(&o.filterLeaf, "filter-leaf", "", "filter by leaf name (supports wildcards)")
 	cmd.Flags().StringVar(&o.filterOwner, "filter-owner", "", "filter by owner name (supports wildcards)")
 	cmd.Flags().StringVar(&o.filterPath, "filter-path", "", "filter by full path (supports wildcards)")
+	cmd.Flags().BoolVar(&o.filterDeviation, "filter-deviation", false, "filter deviations only")
 
 	if err != nil {
 		return nil, err

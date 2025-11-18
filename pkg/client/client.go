@@ -18,9 +18,10 @@ type ConfigClient struct {
 
 // filtering values
 type BlameFilter struct {
-	LeafName string
-	Owner    string
-	Path     string
+	LeafName  string
+	Owner     string
+	Path      string
+	Deviation bool
 }
 
 func NewConfigClient(restConfig *rest.Config) (*ConfigClient, error) {
@@ -55,10 +56,9 @@ func (c *ConfigClient) GetFilteredBlameTree(ctx context.Context, namespace strin
 	}
 
 	// if no filter criteria, returns whole tree
-	if filter.LeafName == "" && filter.Owner == "" && filter.Path == "" {
+	if filter.LeafName == "" && filter.Owner == "" && filter.Path == "" && !filter.Deviation {
 		return tree, nil
 	}
-
 	return c.filterBlameTree(tree, []string{}, filter), nil
 }
 
@@ -70,9 +70,10 @@ func (c *ConfigClient) filterBlameTree(node *sdcpb.BlameTreeElement, currentPath
 
 	// new node for filtered item
 	filteredNode := &sdcpb.BlameTreeElement{
-		Name:  node.Name,
-		Owner: node.Owner,
-		Value: node.Value,
+		Name:           node.Name,
+		Owner:          node.Owner,
+		Value:          node.Value,
+		DeviationValue: node.DeviationValue,
 	}
 
 	// if node is a child, check matching filter
@@ -108,8 +109,9 @@ func (c *ConfigClient) matchesFilter(node *sdcpb.BlameTreeElement, path []string
 	leafMatches := true
 	ownerMatches := true
 	pathMatches := true
+	deviationMatches := true
 
-	// check name filter
+	// check leaf name filter
 	if filter.LeafName != "" {
 		leafMatches = c.matchesPattern(node.Name, filter.LeafName)
 	}
@@ -124,8 +126,12 @@ func (c *ConfigClient) matchesFilter(node *sdcpb.BlameTreeElement, path []string
 		fullPath := strings.Join(append(path, node.Name), "/")
 		pathMatches = c.matchesPattern(fullPath, filter.Path)
 	}
+	// check deviation filter
+	if filter.Deviation {
+		deviationMatches = node.IsDeviated()
+	}
 
-	return leafMatches && ownerMatches && pathMatches
+	return leafMatches && ownerMatches && pathMatches && deviationMatches
 }
 
 // convert pattern with wildcard to regex
@@ -164,7 +170,6 @@ func (c *ConfigClient) matchesPattern(text, pattern string) bool {
 		// don't use case sensitivity
 		return strings.Contains(strings.ToLower(text), strings.ToLower(pattern))
 	}
-
 	return matched
 }
 
