@@ -1,0 +1,65 @@
+apiVersion: config.sdcio.dev/v1alpha1
+kind: ConfigBlame
+metadata:
+  name: test-device
+  namespace: test-system
+status:
+  value:
+    childs:
+      - childs:
+          - childs:
+              - childs:
+                  - childs:
+                      - childs:
+                          - childs:
+                              - childs:
+                                  - name: ambulance
+                                    owner: test-system.intent-emergency
+                                    value:
+                                      boolVal: false
+                                  - name: digits
+                                    owner: test-system.intent-emergency
+                                    value:
+                                      stringVal: "112"
+                                  - name: fire-brigade
+                                    owner: test-system.intent-emergency
+                                    value:
+                                      boolVal: true
+                                  - name: police
+                                    owner: test-system.intent-emergency
+                                    value:
+                                      boolVal: false
+                                name: "112"
+                            name: item
+                          - name: name
+                            owner: test-system.intent-emergency
+                            value:
+                              stringVal: emergency-list
+                        name: emergency-list
+                    name: num-list
+                name: emergency
+            name: service
+          - childs:
+              - childs:
+                  - childs:
+                      - childs:
+                          - name: appl-type
+                            owner: test-system.config-running
+                            value:
+                              stringVal: diameter
+                          - name: timeout
+                            owner: test-system.config-running
+                            value:
+                              intVal: "5000"
+                          - deviationValue:
+                              intVal: "6000"
+                          - name: host
+                            owner: test-system.config-running
+                            value:
+                              stringVal: test.example.com
+                        name: diameter
+                    name: connection
+                name: protocol
+            name: network
+        name: config
+    name: test-device
