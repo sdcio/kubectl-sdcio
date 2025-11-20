@@ -48,6 +48,43 @@ default.intent1-sros-sros    │         │       │   ├── 🍃 customer
 ...
 ```
 
+#### Filtering Options
+
+The blame command supports several filtering options to narrow down the results. **All filters are cumulative** (combined with "AND" logic), meaning only configuration elements that match ALL specified criteria will be displayed.
+
+Available filters:
+
+- **`--filter-leaf <pattern>`**: Filter by leaf node name. Supports wildcards (`*`).
+  - Example: `--filter-leaf "admin-state"` shows only admin-state leaves
+  - Example: `--filter-leaf "interface*"` shows all leaves starting with "interface"
+
+- **`--filter-owner <pattern>`**: Filter by configuration owner. Supports wildcards (`*`).
+  - Example: `--filter-owner "running"` shows only running configuration
+  - Example: `--filter-owner "default.*"` shows all default configurations
+  - Example: `--filter-owner "production.intent-*"` shows intents from production namespace
+
+- **`--filter-path <pattern>`**: Filter by configuration path. Supports wildcards (`*`).
+  - Example: `--filter-path "/config/service/*"` shows only service-related configuration
+  - Example: `--filter-path "*/interface/*"` shows interface configuration at any level
+The whole path (including leaves) is involved in the pattern matching.
+
+- **`--filter-deviation`**: Show only configuration elements that have deviations between intended and actual values.
+
+#### Filter Examples
+
+```bash
+# Show only admin-state configuration from running config
+kubectl sdcio blame --target sros --filter-leaf "admin-state" --filter-owner "running"
+
+# Show all interface-related configuration with deviations
+kubectl sdcio blame --target sros --filter-path "*/interface/*" --deviation
+
+# Show configuration from specific intent with timeout-related leaves
+kubectl sdcio blame --target sros --filter-owner "production.intent-emergency" --filter-leaf "*timeout*"
+
+# Combine multiple filters to find specific configuration
+kubectl sdcio blame --target sros --filter-path "/config/service/emergency/*" --filter-leaf "ambulance" --filter-owner "test-system.*"
+
 ## Join us
 
 Have questions, ideas, bug reports or just want to chat? Come join [our discord server](https://discord.com/channels/1240272304294985800/1311031796372344894).
