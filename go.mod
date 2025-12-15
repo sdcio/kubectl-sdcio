@@ -8,7 +8,7 @@ toolchain go1.24.3
 
 require (
 	github.com/sdcio/config-server v0.0.54
-	github.com/sdcio/sdc-protos v0.0.46
+	github.com/sdcio/sdc-protos v0.0.47
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.10
 	google.golang.org/protobuf v1.36.10
