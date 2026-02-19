@@ -1,2 +1,3 @@
 .vscode
 kubectl-sdcio
+dist/
