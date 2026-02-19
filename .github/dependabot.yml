@@ -22,3 +22,10 @@ updates:
       directory: "/"
       schedule:
           interval: "weekly"
+      groups:
+          go-kubernetes-deps:
+              patterns:
+                  - "k8s.io/*"
+          go-dependencies:
+              patterns:
+                  - "*"
