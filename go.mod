@@ -11,7 +11,9 @@ require (
 	github.com/sdcio/sdc-protos v0.0.46
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
+	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.10
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.33.1
 	k8s.io/cli-runtime v0.33.1
 	k8s.io/client-go v0.33.1
@@ -64,10 +66,12 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.21 // indirect
