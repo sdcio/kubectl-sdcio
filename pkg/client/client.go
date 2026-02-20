@@ -32,7 +32,7 @@ func (c *ConfigClient) GetDeviations(ctx context.Context, namespace string, devi
 		return nil, err
 	}
 
-	return ConvertDeviations(resp), nil
+	return ConvertDeviations(resp)
 }
 
 func (c *ConfigClient) ListDeviationNames(ctx context.Context, namespace string) ([]string, error) {

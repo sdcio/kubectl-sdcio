@@ -1,40 +1,44 @@
 package client
 
 import (
-	"strings"
-
 	"github.com/sdcio/config-server/apis/config/v1alpha1"
 	"github.com/sdcio/kubectl-sdcio/pkg/types"
+	"github.com/sdcio/sdc-protos/sdcpb"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
-func ConvertDeviations(d *v1alpha1.Deviation) *types.Deviations {
+func ConvertDeviations(d *v1alpha1.Deviation) (*types.Deviations, error) {
 	dt := ConvertDeviationType(*d.Spec.DeviationType)
 	result := types.NewDeviations(d.GetName(), dt, len(d.Spec.Deviations)).SetNamespace(d.GetNamespace())
 
 	for _, dev := range d.Spec.Deviations {
-		result.AddDeviation(ConvertDeviation(&dev))
+		dev, err := ConvertDeviation(&dev)
+		if err != nil {
+			return nil, err
+		}
+		result.AddDeviation(dev)
 	}
-	return result
+	return result, nil
 }
 
-func stripValuePrefix(value string) string {
-	// Remove prefixes like "json_val:", "string_val:", "uint_val:", etc.
-	if idx := strings.Index(value, "_val:"); idx != -1 {
-		return value[idx+5:]
-	}
-	return value
-}
-
-func ConvertDeviation(d *v1alpha1.ConfigDeviation) *types.Deviation {
+func ConvertDeviation(d *v1alpha1.ConfigDeviation) (*types.Deviation, error) {
+	var err error
 	desired := ""
 	current := ""
+
 	if d.DesiredValue != nil {
-		desired = stripValuePrefix(*d.DesiredValue)
+		desired, err = convertTypedValueTextToSTring(*d.DesiredValue)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if d.CurrentValue != nil {
-		current = stripValuePrefix(*d.CurrentValue)
+		current, err = convertTypedValueTextToSTring(*d.CurrentValue)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return types.NewDeviation(d.Path, desired, current, d.Reason)
+	return types.NewDeviation(d.Path, desired, current, d.Reason), nil
 }
 
 func ConvertDeviationType(dt v1alpha1.DeviationType) types.DeviationType {
@@ -46,4 +50,13 @@ func ConvertDeviationType(dt v1alpha1.DeviationType) types.DeviationType {
 	default:
 		return types.DeviationTypeUnknown
 	}
+}
+
+func convertTypedValueTextToSTring(tvText string) (string, error) {
+	tv := &sdcpb.TypedValue{}
+	err := prototext.Unmarshal([]byte(tvText), tv)
+	if err != nil {
+		return "", err
+	}
+	return tv.ToString(), nil
 }
