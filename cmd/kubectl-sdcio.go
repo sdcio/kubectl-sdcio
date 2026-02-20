@@ -42,6 +42,12 @@ func main() {
 		panic(err)
 	}
 	root.AddCommand(blameCmd)
+	deviationCmd, err := sdcioCmd.NewCmdDeviation(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	if err != nil {
+		panic(err)
+	}
+	root.AddCommand(deviationCmd)
+
 	root.AddCommand(completionCmd)
 	root.Version = "v0.0.0"
 	root.CompletionOptions.DisableDefaultCmd = false
