@@ -101,6 +101,7 @@ func addPreviewOpt(opts []fuzzyfinder.Option, deviations []types.Deviation) []fu
 		if i == -1 {
 			return ""
 		}
+		// figure out indetion for each label by finding the longest label and adding 1 space
 		labels := []string{"Path:", "Actual:", "Desired:", "Reason:"}
 		maxLabel := 0
 		for _, label := range labels {
@@ -108,6 +109,8 @@ func addPreviewOpt(opts []fuzzyfinder.Option, deviations []types.Deviation) []fu
 				maxLabel = len(label)
 			}
 		}
+
+		// build preview string with aligned labels
 		preview := fmt.Sprintf(
 			"%s %s\n%s %s\n%s %s\n%s %s\n",
 			alignLabel("Path:", maxLabel), deviations[i].Path(),
@@ -137,8 +140,13 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 		return nil
 	}
 
+	deviations := dev.Deviations()
+
 	opts := []fuzzyfinder.Option{
 		fuzzyfinder.WithHeader(fmt.Sprintf("Namespace: %s, Deviation: %s [%s]", dev.Namespace(), dev.Name(), dev.Type())),
+		fuzzyfinder.WithSearchItemFunc(func(i int) string {
+			return fmt.Sprintf("%s%s%s", deviations[i].Reason(), deviations[i].DesiredValue(), deviations[i].ActualValue())
+		}),
 	}
 
 	// add preview as an option if the flag is set
@@ -146,7 +154,6 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 		opts = addPreviewOpt(opts, dev.Deviations())
 	}
 
-	deviations := dev.Deviations()
 	// Use fuzzy finder with multi-select to choose deviations to display
 	idxs, err := fuzzyfinder.FindMulti(
 		deviations,
