@@ -161,7 +161,11 @@ func (o *RunningConfigOptions) Run(_ *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to create data client: %w", err)
 	}
-	defer dataClient.Close()
+	defer func() {
+		if err := dataClient.Close(); err != nil {
+			_, _ = fmt.Fprintf(o.ErrOut, "warning: failed to close data client: %v\n", err)
+		}
+	}()
 
 	// Connect to data-server (establishes port-forward)
 	if err := dataClient.Connect(ctx); err != nil {

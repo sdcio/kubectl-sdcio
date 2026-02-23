@@ -122,7 +122,9 @@ func (d *DataClient) Connect(ctx context.Context) error {
 		return fmt.Errorf("failed to find free port: %w", err)
 	}
 	d.localPort = listener.Addr().(*net.TCPAddr).Port
-	listener.Close()
+	if err := listener.Close(); err != nil {
+		return fmt.Errorf("failed to close listener: %w", err)
+	}
 
 	// Set up port-forward (this blocks until ready or fails)
 	if err := d.setupPortForward(ctx); err != nil {
@@ -131,7 +133,9 @@ func (d *DataClient) Connect(ctx context.Context) error {
 
 	conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", d.localPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		d.Close()
+		if closeErr := d.Close(); closeErr != nil {
+			return fmt.Errorf("failed to connect to data service: %w (cleanup failed: %v)", err, closeErr)
+		}
 		return fmt.Errorf("failed to connect to data service: %w", err)
 	}
 

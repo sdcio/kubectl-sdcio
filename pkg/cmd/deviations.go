@@ -136,7 +136,7 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 	}
 
 	if dev.Length() == 0 {
-		_, err := fmt.Fprintln(o.IOStreams.Out, "No deviations found")
+		_, err := fmt.Fprintln(o.Out, "No deviations found")
 		return err
 	}
 
@@ -168,7 +168,7 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 
 	// Display selected deviations
 	for _, idx := range idxs {
-		_, err = fmt.Fprintln(o.IOStreams.Out, deviations[idx].Path())
+		_, err = fmt.Fprintln(o.Out, deviations[idx].Path())
 		if err != nil {
 			return err
 		}
