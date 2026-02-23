@@ -4,6 +4,11 @@
 
 kubectl-sdcio is the SDC specific kubectl plugin.
 
+## notes
+- Commands use the current kubectl config to access the cluster and namespace.
+- Shell completion is available for `runningconfig` (`--target`, `--format`) and `deviation` (`--deviation`).
+- `runningconfig` connects to `sdc-system/data-server` via port-forward.
+
 ## subcommands
 kubectl-sdcio provides the following functionalities.
 
@@ -71,6 +76,85 @@ kubectl sdcio blame --target sros --filter-owner "production.intent-emergency" -
 
 # Combine multiple filters to find specific configuration
 kubectl sdcio blame --target sros --filter-path "/config/service/emergency/*" --filter-leaf "ambulance" --filter-owner "test-system.*"
+
+
+### runningconfig
+The runningconfig command retrieves the running configuration for a target from the data-server.
+
+It takes the `--target` parameter, that defines which target is to be displayed.
+The `--format` parameter controls the output format (json, json_ietf, xml, xpath, yaml). Default is `xpath`.
+
+Hints:
+- The command uses the current kubectl config to access the cluster and namespace.
+- The command connects to the `sdc-system/data-server` service (port-forward) to fetch the running config.
+- Shell completion is available for `--target` and `--format`.
+
+Example:
+```
+kubectl sdcio runningconfig --target srl1 --format xpath
+  
+/system/snmp/access-group[name=SNMPv2-RO-Community]/name: SNMPv2-RO-Community
+/system/snmp/access-group[name=SNMPv2-RO-Community]/security-level: no-auth-no-priv
+/system/snmp/network-instance[name=mgmt]/admin-state: enable
+/system/snmp/network-instance[name=mgmt]/name: mgmt
+/system/ssh-server[name=mgmt-netconf]/admin-state: enable
+/system/ssh-server[name=mgmt-netconf]/disable-shell: true
+/system/ssh-server[name=mgmt-netconf]/name: mgmt-netconf
+/system/ssh-server[name=mgmt-netconf]/network-instance: mgmt
+/system/ssh-server[name=mgmt-netconf]/port: 830
+/system/ssh-server[name=mgmt]/admin-state: enable
+/system/ssh-server[name=mgmt]/name: mgmt
+/system/ssh-server[name=mgmt]/network-instance: mgmt
+/system/ssh-server[name=mgmt]/use-credentialz: true
+/system/tls/server-profile[name=clab-profile]/authenticate-client: false
+...
+```
+
+### deviation
+The deviation command provides an xpath based view of the defined deviations. Deviations are auto completed from the k8s resources and can be previewed with details.
+
+It takes the `--deviation` parameter, that defines which deviation is to be displayed.
+The `--preview` flag toggles the details preview panel for the currently selected path.
+
+Selection notes:
+- The preview shows the actual and desired value for the currently selected path.
+- When you exit the interactive window, the selected paths are printed to stdout.
+
+Keyboard shortcuts:
+- Tab selects entries (multi selection is supported).
+- Shift + Left/Right Arrow horizontally scrolls the list.
+- Ctrl + O toggles searching for paths only vs paths and values.
+
+Example (preview a deviation):
+```
+kubectl sdcio deviation --deviation srl1 --preview
+
+  Namespace: default, Deviation: srl1 [target]                                                           ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/description                            │ Path:    /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                     │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/action/accept                          │ Actual:  Drop all else                                                                                │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/sequence-id                             │ Desired:                                                                                              │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/protocol                     │ Reason:  UNHANDLED                                                                                    │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/icmp/type                    │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/description                             │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/action/accept/rate-limit/system-cpu-p.. │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/sequence-id                            │                                                                                                       │
+ >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/val.. │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/ope.. │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/ipv4/protocol                    │                                                                                                       │
+ >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description                            │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/action/accept                          │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/sequence-id                           │                                                                                                       │
+>>[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                           │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/log                            │                                                                                                       │
+  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/drop                           │                                                                                                       │
+  739/739                                                                                                │                                                                                                       │
+>                                                                                                        └───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+# Output after exit (stdout)
+/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/value
+/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description
+/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description
+```
 
 ## Join us
 
