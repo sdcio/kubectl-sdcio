@@ -67,3 +67,25 @@ func formatCompletionFunc() func(cmd *cobra.Command, args []string, toComplete s
 		return formats, cobra.ShellCompDirectiveDefault
 	}
 }
+
+// runningConfigTargetCompletionFunc is a completion function that completes targets
+// that match the toComplete prefix for runningconfig command.
+func runningConfigTargetCompletionFunc(o *RunningConfigOptions) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if err := o.Complete(nil, nil); err != nil {
+			return compError(err)
+		}
+
+		cl, err := client.NewConfigClient(o.restConfig)
+		if err != nil {
+			return compError(err)
+		}
+
+		comps, err := cl.ListTargetNames(context.Background(), o.namespace)
+		if err != nil {
+			return compError(err)
+		}
+
+		return comps, cobra.ShellCompDirectiveNoFileComp
+	}
+}

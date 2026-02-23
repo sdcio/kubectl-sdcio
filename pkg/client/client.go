@@ -78,3 +78,19 @@ func (c *ConfigClient) ListTargetNames(ctx context.Context, namespace string) ([
 
 	return result, nil
 }
+
+// ListRunningConfigNames lists all running config names in a namespace
+func (c *ConfigClient) ListRunningConfigNames(ctx context.Context, namespace string) ([]string, error) {
+	resp, err := c.c.ConfigV1alpha1().RunningConfigs(namespace).List(ctx, v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]string, 0, len(resp.Items))
+
+	for _, i := range resp.Items {
+		result = append(result, i.Name)
+	}
+
+	return result, nil
+}

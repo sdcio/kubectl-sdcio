@@ -54,13 +54,13 @@ type DeviationOptions struct {
 	namespace string
 	deviation string
 	preview   bool
-	MyOptions
+	GenericOptions
 }
 
 // NewDeviationOptions provides an instance of DeviationOptions with default values
 func NewDeviationOptions(streams genericiooptions.IOStreams) *DeviationOptions {
 	return &DeviationOptions{
-		MyOptions: MyOptions{
+		GenericOptions: GenericOptions{
 			configFlags: genericclioptions.NewConfigFlags(true),
 			IOStreams:   streams,
 		},
@@ -136,8 +136,8 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 	}
 
 	if dev.Length() == 0 {
-		fmt.Fprintln(o.IOStreams.Out, "No deviations found")
-		return nil
+		_, err := fmt.Fprintln(o.IOStreams.Out, "No deviations found")
+		return err
 	}
 
 	deviations := dev.Deviations()
@@ -168,7 +168,10 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 
 	// Display selected deviations
 	for _, idx := range idxs {
-		fmt.Fprintln(o.IOStreams.Out, deviations[idx].Path())
+		_, err = fmt.Fprintln(o.IOStreams.Out, deviations[idx].Path())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
