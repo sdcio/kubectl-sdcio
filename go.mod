@@ -6,7 +6,7 @@ go 1.24.0
 
 toolchain go1.24.3
 
-replace github.com/ktr0731/go-fuzzyfinder => /home/mava/projects/go-fuzzyfinder
+replace github.com/ktr0731/go-fuzzyfinder => github.com/steiler/go-fuzzyfinder v0.1.0
 
 require (
 	github.com/beevik/etree v1.6.0
