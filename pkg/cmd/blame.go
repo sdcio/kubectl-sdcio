@@ -19,10 +19,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/sdcio/kubectl-sdcio/pkg/client"
+	"github.com/sdcio/kubectl-sdcio/pkg/commands/blame"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
@@ -30,17 +32,18 @@ import (
 type BlameOptions struct {
 	namespace       string
 	target          string
-	filterLeaf      string
-	filterOwner     string
-	filterPath      string
+	format          string
+	filterLeaf      []string
+	filterOwner     []string
+	filterPath      []string
 	filterDeviation bool
-	MyOptions
+	GenericOptions
 }
 
 // NewBlameOptions provides an instance of NamespaceOptions with default values
 func NewBlameOptions(streams genericiooptions.IOStreams) *BlameOptions {
 	return &BlameOptions{
-		MyOptions: MyOptions{
+		GenericOptions: GenericOptions{
 			configFlags: genericclioptions.NewConfigFlags(true),
 			IOStreams:   streams,
 		},
@@ -77,26 +80,51 @@ func (o *BlameOptions) Validate() error {
 }
 
 func (o *BlameOptions) Run(_ *cobra.Command) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	cl, err := client.NewConfigClient(o.restConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create config client: %w", err)
 	}
 
-	// create a filter from options
-	filter := client.BlameFilter{
-		LeafName:  o.filterLeaf,
-		Owner:     o.filterOwner,
-		Path:      o.filterPath,
-		Deviation: o.filterDeviation,
-	}
-
-	bt, err := cl.GetFilteredBlameTree(ctx, o.namespace, o.target, filter)
+	// Parse the output format
+	format, err := blame.ParseFormat(o.format)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse format: %w", err)
 	}
 
-	fmt.Println(bt.ToString())
+	// setup the content filter
+	filter := blame.BuildFilters(o.filterLeaf, o.filterOwner, o.filterDeviation)
+
+	// setup the path filter
+	pathFilter, err := blame.BuildPathFilters(o.filterPath)
+	if err != nil {
+		return fmt.Errorf("failed to build path filters: %w", err)
+	}
+
+	// run the blame command with the filter
+	out, err := blame.Run(ctx, cl, o.namespace, o.target, pathFilter, filter)
+	if err != nil {
+		return fmt.Errorf("failed to run blame: %w", err)
+	}
+
+	if out == nil {
+		return fmt.Errorf("blame returned no output")
+	}
+
+	// generate the output based on the format
+	var result string
+	switch format {
+	case blame.BlameFormatTree:
+		result = out.ToString()
+	case blame.BlameFormatXPath:
+		result = out.StringXPath()
+	default:
+		return fmt.Errorf("unknown blame format: %v", format)
+	}
+
+	fmt.Fprintln(o.Out, result)
 	return nil
 }
 
@@ -128,10 +156,11 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the blame config for")
 	err := cmd.MarkFlagRequired("target")
 
-	//filter flags
-	cmd.Flags().StringVar(&o.filterLeaf, "filter-leaf", "", "filter by leaf name (supports wildcards)")
-	cmd.Flags().StringVar(&o.filterOwner, "filter-owner", "", "filter by owner name (supports wildcards)")
-	cmd.Flags().StringVar(&o.filterPath, "filter-path", "", "filter by full path (supports wildcards)")
+	// filter flags
+	cmd.Flags().StringSliceVar(&o.filterLeaf, "filter-leaf", nil, "filter by leaf name (supports wildcards, can be specified multiple times)")
+	cmd.Flags().StringSliceVar(&o.filterOwner, "filter-owner", nil, "filter by owner name (supports wildcards, can be specified multiple times)")
+	cmd.Flags().StringSliceVar(&o.filterPath, "filter-path", nil, "filter by full path (supports wildcards, can be specified multiple times)")
+	cmd.Flags().StringVar(&o.format, "format", "tree", fmt.Sprintf("output format (%s)", blame.FormatOptionsString()))
 	cmd.Flags().BoolVar(&o.filterDeviation, "filter-deviation", false, "filter deviations only")
 
 	if err != nil {

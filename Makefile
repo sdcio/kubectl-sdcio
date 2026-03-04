@@ -16,7 +16,7 @@ MOCKDIR = ./mocks
 mocks-gen: mocks-rm ## Generate mocks for all the defined interfaces.
 	mkdir -p $(MOCKDIR)
 	go install go.uber.org/mock/mockgen@latest
-# 	mockgen -package=mocknetconf -source=pkg/datastore/target/netconf/driver.go -destination=$(MOCKDIR)/mocknetconf/driver.go
+	mockgen -package=mockblame -source=pkg/commands/blame/blame.go -destination=$(MOCKDIR)/blame/blame.go
 
 .PHONY: mocks-rm
 mocks-rm: ## remove generated mocks
