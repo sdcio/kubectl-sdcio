@@ -8,9 +8,10 @@ toolchain go1.24.3
 
 require (
 	github.com/sdcio/config-server v0.0.55
-	github.com/sdcio/sdc-protos v0.0.50
+	github.com/sdcio/sdc-protos v0.0.51-0.20260304120533-f0e62d96331e
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
+	go.uber.org/mock v0.6.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/apimachinery v0.33.2
 	k8s.io/cli-runtime v0.33.1

@@ -24,6 +24,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - run: go test ./... -cover -coverprofile=coverage.txt -race -count=1
+        env:
+          CGO_ENABLED: 1
+          
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          
   build-and-release:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')

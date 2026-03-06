@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type MyOptions struct {
+type GenericOptions struct {
 	restConfig  *rest.Config
 	configFlags *genericclioptions.ConfigFlags
 	genericiooptions.IOStreams
