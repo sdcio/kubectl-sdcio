@@ -124,7 +124,7 @@ func (o *BlameOptions) Run(_ *cobra.Command) error {
 		return fmt.Errorf("unknown blame format: %v", format)
 	}
 
-	fmt.Fprintln(o.Out, result)
+	_, _ = fmt.Fprintln(o.Out, result)
 	return nil
 }
 
