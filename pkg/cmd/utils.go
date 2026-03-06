@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sdcio/kubectl-sdcio/pkg/client"
+	"github.com/sdcio/kubectl-sdcio/pkg/commands/blame"
 	"github.com/spf13/cobra"
 )
 
@@ -31,5 +32,16 @@ func targetCompletionFunc(o *BlameOptions) func(cmd *cobra.Command, args []strin
 		}
 
 		return comps, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+// formatCompletionFunc is a completion function that completes format options
+func formatCompletionFunc() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		var formats []string
+		for _, f := range blame.BlameFormatOptions {
+			formats = append(formats, string(f))
+		}
+		return formats, cobra.ShellCompDirectiveDefault
 	}
 }

@@ -170,6 +170,10 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {
 		return nil, err
 	}
+	if err := cmd.RegisterFlagCompletionFunc("format", formatCompletionFunc()); err != nil {
+		return nil, err
+	}
+
 	o.configFlags.AddFlags(cmd.Flags())
 
 	return cmd, nil
