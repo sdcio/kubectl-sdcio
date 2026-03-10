@@ -9,7 +9,6 @@ import (
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
@@ -38,7 +37,7 @@ func NewConfigClient(restConfig *rest.Config) (*ConfigClient, error) {
 }
 
 func (c *ConfigClient) GetDeviations(ctx context.Context, namespace string, deviationName string) (*types.Deviations, error) {
-	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).Get(ctx, deviationName, v1.GetOptions{})
+	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).Get(ctx, deviationName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +46,8 @@ func (c *ConfigClient) GetDeviations(ctx context.Context, namespace string, devi
 }
 
 func (c *ConfigClient) ListDeviations(ctx context.Context, namespace string, labels map[string]string) ([]*types.Deviations, error) {
-	labelselector := v1.FormatLabelSelector(&v1.LabelSelector{MatchLabels: labels})
-	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).List(ctx, v1.ListOptions{LabelSelector: labelselector})
+	labelselector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: labels})
+	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelselector})
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +74,7 @@ func (c *ConfigClient) ListDeviationNames(ctx context.Context, namespace string,
 
 	listOptions := metav1.ListOptions{}
 	if len(labels) > 0 {
-		listOptions.LabelSelector = v1.FormatLabelSelector(&v1.LabelSelector{MatchLabels: labels})
+		listOptions.LabelSelector = metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: labels})
 	}
 
 	// This call sends the "Accept: application/json;as=PartialObjectMetadataList" header automatically
@@ -93,7 +92,7 @@ func (c *ConfigClient) ListDeviationNames(ctx context.Context, namespace string,
 }
 
 func (c *ConfigClient) GetBlameTree(ctx context.Context, namespace string, device string) (*sdcpb.BlameTreeElement, error) {
-	resp, err := c.c.ConfigV1alpha1().ConfigBlames(namespace).Get(ctx, device, v1.GetOptions{})
+	resp, err := c.c.ConfigV1alpha1().ConfigBlames(namespace).Get(ctx, device, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +161,7 @@ func (c *ConfigClient) ClearTargetDeviations(ctx context.Context, namespace, tar
 	// The Config field expects a slice of TargetClearDeviationConfig
 	// We create a single config entry with the target name and paths
 	clearRequest := &v1alpha1.TargetClearDeviation{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       v1alpha1.TargetClearDeviationKind,
 			APIVersion: v1alpha1.SchemeGroupVersion.Identifier(),
 		},

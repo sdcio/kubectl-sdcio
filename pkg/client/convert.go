@@ -63,7 +63,7 @@ func ConvertDeviationType(dt v1alpha1.DeviationType) (types.DeviationType, error
 	case v1alpha1.DeviationType_CONFIG:
 		return types.DeviationTypeConfig, nil
 	default:
-		return types.DeviationTypeUnknown, fmt.Errorf("Unknown deviation type %v", dt)
+		return types.DeviationTypeUnknown, fmt.Errorf("unknown deviation type %v", dt)
 	}
 }
 
