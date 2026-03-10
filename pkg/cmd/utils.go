@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 
-	"github.com/sdcio/kubectl-sdcio/pkg/client"
-	"github.com/sdcio/kubectl-sdcio/pkg/commands/blame"
+	"github.com/sdcio/kubectl-sdc/pkg/client"
+	"github.com/sdcio/kubectl-sdc/pkg/commands/blame"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 )

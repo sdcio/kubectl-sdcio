@@ -1,6 +1,6 @@
 // This is a generated file. Do not edit directly.
 
-module github.com/sdcio/kubectl-sdcio
+module github.com/sdcio/kubectl-sdc
 
 go 1.25.0
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sdcio/config-server/apis/config/v1alpha1"
-	"github.com/sdcio/kubectl-sdcio/pkg/types"
+	"github.com/sdcio/kubectl-sdc/pkg/types"
 	"github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/prototext"
 )

@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-# call kubectl sdcio for completion
-kubectl-sdcio __complete "$@"

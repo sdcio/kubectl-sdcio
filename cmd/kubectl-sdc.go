@@ -22,8 +22,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	sdcioCmd "github.com/sdcio/kubectl-sdcio/pkg/cmd"
+	sdcioCmd "github.com/sdcio/kubectl-sdc/pkg/cmd"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 func main() {
@@ -31,9 +32,9 @@ func main() {
 	pflag.CommandLine = flags
 
 	root := &cobra.Command{
-		Use: "sdcio",
+		Use: "sdc",
 		Annotations: map[string]string{
-			cobra.CommandDisplayNameAnnotation: "kubectl sdcio",
+			cobra.CommandDisplayNameAnnotation: "kubectl sdc",
 		},
 	}
 
@@ -73,15 +74,15 @@ var completionCmd = &cobra.Command{
 
 Bash:
 
-$ source <(kubectl sdcio completion bash)
+$ source <(kubectl sdc completion bash)
 
 Zsh:
 
-$ source <(kubectl sdcio completion zsh)
+$ source <(kubectl sdc completion zsh)
 
 Fish:
 
-$ kubectl sdcio completion fish | source
+$ kubectl sdc completion fish | source
 `,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},

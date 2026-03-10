@@ -5,7 +5,7 @@ import (
 
 	"github.com/sdcio/config-server/apis/config/v1alpha1"
 	configCR "github.com/sdcio/config-server/pkg/generated/clientset/versioned"
-	"github.com/sdcio/kubectl-sdcio/pkg/types"
+	"github.com/sdcio/kubectl-sdc/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

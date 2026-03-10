@@ -23,8 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sdcio/kubectl-sdcio/pkg/client"
-	"github.com/sdcio/kubectl-sdcio/pkg/commands/blame"
+	"github.com/sdcio/kubectl-sdc/pkg/client"
+	"github.com/sdcio/kubectl-sdc/pkg/commands/blame"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )

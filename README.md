@@ -1,8 +1,8 @@
-# kubectl-sdcio
+# kubectl-sdc
 
 ![sdc logo](https://docs.sdcio.dev/assets/logos/SDC-transparent-withname-100x133.png)
 
-kubectl-sdcio is the SDC specific kubectl plugin.
+kubectl-sdc is the SDC specific kubectl plugin.
 
 ## notes
 - Commands use the current kubectl config to access the cluster and namespace.
@@ -10,7 +10,7 @@ kubectl-sdcio is the SDC specific kubectl plugin.
 - `runningconfig` connects to `sdc-system/data-server` via port-forward.
 
 ## subcommands
-kubectl-sdcio provides the following functionalities.
+kubectl-sdc provides the following functionalities.
 
 ### blame
 The blame command provides a tree based view on the actual running device configuration of the given SDC target.
@@ -18,11 +18,11 @@ The blame command provides a tree based view on the actual running device config
 It takes the `--target` parameter, that defines which targets is to be displayed.
 
 For every configured attribute you will see the highes preference value as well as the source of that value.
-- `running` are attributes that come from the device itself, where no intent exist in sdcio.
+- `running` are attributes that come from the device itself, where no intent exist in sdc.
 - `default` is all the default values that are present in the config, that are not overwritten by any specific config.
 - `<namespace>.<intentname>` is the reference to the intent that defined the actual highes preference value for that config attribute.
 ```
-kubectl sdcio blame --target srl1 --filter-owner running --format tree  --filter-path /interface[name=mgmt0]/subinterface --filter-path /system/snmp/access-group[name=SNMPv2-RO-Community] --filter-owner default --filter-leaf admin*
+kubectl sdc blame --target srl1 --filter-owner running --format tree  --filter-path /interface[name=mgmt0]/subinterface --filter-path /system/snmp/access-group[name=SNMPv2-RO-Community] --filter-owner default --filter-leaf admin*
   -----    │     🎯 default.srl1
   -----    │     ├── 📦 interface
   -----    │     │   └── 🔑 name=mgmt0
@@ -66,16 +66,16 @@ The whole path (including leaves) is involved in the pattern matching.
 
 ```bash
 # Show only admin-state configuration from running config
-kubectl sdcio blame --target sros --filter-leaf "admin-state" --filter-owner "running"
+kubectl sdc blame --target sros --filter-leaf "admin-state" --filter-owner "running"
 
 # Show all interface-related configuration with deviations
-kubectl sdcio blame --target sros --filter-path "*/interface/*" --deviation
+kubectl sdc blame --target sros --filter-path "*/interface/*" --deviation
 
 # Show configuration from specific intent with timeout-related leaves
-kubectl sdcio blame --target sros --filter-owner "production.intent-emergency" --filter-leaf "*timeout*"
+kubectl sdc blame --target sros --filter-owner "production.intent-emergency" --filter-leaf "*timeout*"
 
 # Combine multiple filters to find specific configuration
-kubectl sdcio blame --target sros --filter-path "/config/service/emergency/*" --filter-leaf "ambulance" --filter-owner "test-system.*"
+kubectl sdc blame --target sros --filter-path "/config/service/emergency/*" --filter-leaf "ambulance" --filter-owner "test-system.*"
 
 
 ### runningconfig
@@ -91,7 +91,7 @@ Hints:
 
 Example:
 ```
-kubectl sdcio runningconfig --target srl1 --format xpath
+kubectl sdc runningconfig --target srl1 --format xpath
   
 /system/snmp/access-group[name=SNMPv2-RO-Community]/name: SNMPv2-RO-Community
 /system/snmp/access-group[name=SNMPv2-RO-Community]/security-level: no-auth-no-priv
@@ -127,7 +127,7 @@ Keyboard shortcuts:
 
 Example (preview a deviation):
 ```
-kubectl sdcio deviation --deviation srl1 --preview
+kubectl sdc deviation --deviation srl1 --preview
 
   Namespace: default, Deviation: srl1 [target]                                                           ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
   [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/description                            │ Path:    /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                     │

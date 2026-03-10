@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# call kubectl sdc for completion
+kubectl-sdc __complete "$@"

@@ -13,10 +13,10 @@
 # limitations under the License.
 
 version: 2
-project_name: kubectl-sdcio
+project_name: kubectl-sdc
 builds:
-  - id: kubectl-sdcio
-    binary: kubectl-sdcio
+  - id: kubectl-sdc
+    binary: kubectl-sdc
     main: ./cmd
     env:
       - CGO_ENABLED=0
@@ -40,12 +40,12 @@ archives:
       {{- else if eq .Arch "arm64" }}aarch64
       {{- else }}{{ .Arch }}{{ end }}
     files:
-      - ./kubectl_complete-sdcio
+      - ./kubectl_complete-sdc
 nfpms:
-  - id: kubectl-sdcio
-    package_name: kubectl-sdcio
+  - id: kubectl-sdc
+    package_name: kubectl-sdc
     vendor: SDC
-    homepage: https://github.com/sdcio/kubectl-sdcio
+    homepage: https://github.com/sdcio/kubectl-sdc
     maintainer: SDC Team
     description: kubectl plugin for SDC
     license: Apache 2.0
@@ -55,8 +55,8 @@ nfpms:
       - rpm
     bindir: /usr/bin
     contents:
-      - src: ./kubectl_complete-sdcio
-        dst: /usr/bin/kubectl_complete-sdcio
+      - src: ./kubectl_complete-sdc
+        dst: /usr/bin/kubectl_complete-sdc
         file_info:
           mode: 0755
 checksum:

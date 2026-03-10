@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
-	"github.com/sdcio/kubectl-sdcio/pkg/types"
+	"github.com/sdcio/kubectl-sdc/pkg/types"
 )
 
 // DeviationClient defines the interface for deviation operations
