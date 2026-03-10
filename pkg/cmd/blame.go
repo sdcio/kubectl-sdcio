@@ -30,7 +30,6 @@ import (
 )
 
 type BlameOptions struct {
-	namespace       string
 	target          string
 	format          string
 	filterLeaf      []string

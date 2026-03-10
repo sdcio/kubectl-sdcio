@@ -6,6 +6,7 @@ import (
 	"github.com/sdcio/kubectl-sdcio/pkg/client"
 	"github.com/sdcio/kubectl-sdcio/pkg/commands/blame"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 )
 
 func compError(err error) ([]string, cobra.ShellCompDirective) {
@@ -15,18 +16,45 @@ func compError(err error) ([]string, cobra.ShellCompDirective) {
 
 // targetCompletionFunc is a completion function that completes target
 // that match the toComplete prefix.
-func targetCompletionFunc(o *BlameOptions) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func targetCompletionFunc(o k8sCompletion) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if err := o.Complete(nil, nil); err != nil {
 			return compError(err)
 		}
 
-		cl, err := client.NewConfigClient(o.restConfig)
+		cl, err := client.NewConfigClient(o.RESTConfig())
 		if err != nil {
 			return compError(err)
 		}
 
-		comps, err := cl.GetTargetNames(context.Background(), o.namespace)
+		comps, err := cl.ListTargetNames(context.Background(), o.GetNamespace())
+		if err != nil {
+			return compError(err)
+		}
+
+		return comps, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+// deviationCompletionFunc is a completion function that completes deviations
+// that match the toComplete prefix.
+func deviationCompletionFunc(o *DeviationOptions) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if err := o.Complete(nil, nil); err != nil {
+			return compError(err)
+		}
+
+		cl, err := client.NewConfigClient(o.RESTConfig())
+		if err != nil {
+			return compError(err)
+		}
+
+		var selectLabels map[string]string
+		if o.target != "" {
+			selectLabels = map[string]string{"config.sdcio.dev/targetName": o.target}
+		}
+
+		comps, err := cl.ListDeviationNames(context.Background(), o.GetNamespace(), selectLabels)
 		if err != nil {
 			return compError(err)
 		}
@@ -44,4 +72,10 @@ func formatCompletionFunc() func(cmd *cobra.Command, args []string, toComplete s
 		}
 		return formats, cobra.ShellCompDirectiveDefault
 	}
+}
+
+type k8sCompletion interface {
+	RESTConfig() *rest.Config
+	Complete(*cobra.Command, []string) error
+	GetNamespace() string
 }
