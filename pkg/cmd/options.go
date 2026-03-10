@@ -9,5 +9,14 @@ import (
 type GenericOptions struct {
 	restConfig  *rest.Config
 	configFlags *genericclioptions.ConfigFlags
+	namespace   string
 	genericiooptions.IOStreams
+}
+
+func (o *GenericOptions) RESTConfig() *rest.Config {
+	return o.restConfig
+}
+
+func (o *GenericOptions) GetNamespace() string {
+	return o.namespace
 }

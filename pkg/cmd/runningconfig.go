@@ -72,7 +72,6 @@ func ParseFormat(formatStr string) (client.Format, error) {
 }
 
 type RunningConfigOptions struct {
-	namespace string
 	target    string
 	formatStr string
 	format    client.Format
@@ -227,7 +226,7 @@ func NewCmdRunningConfig(streams genericiooptions.IOStreams) (*cobra.Command, er
 		return nil, err
 	}
 
-	if err := cmd.RegisterFlagCompletionFunc("target", runningConfigTargetCompletionFunc(o)); err != nil {
+	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {
 		return nil, err
 	}
 	o.configFlags.AddFlags(cmd.Flags())

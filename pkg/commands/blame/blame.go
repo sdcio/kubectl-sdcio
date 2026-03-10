@@ -33,7 +33,7 @@ func filterBlameTree(node *sdcpb.BlameTreeElement, path *sdcpb.Path, pathFilter 
 	result := node.Copy()
 
 	// if the node is a leaf (has value), check if it matches the filter
-	if node.GetValue() != nil {
+	if node.GetValue() != nil || node.GetDeviationValue() != nil {
 		// if the filter does not match, return nil to exclude this leaf
 		if !filter.Matches(node) {
 			return nil
@@ -58,7 +58,7 @@ func filterBlameTree(node *sdcpb.BlameTreeElement, path *sdcpb.Path, pathFilter 
 	result.Childs = filteredChilds
 
 	// if one child matches, keep the node
-	if len(filteredChilds) == 0 && node.GetValue() == nil {
+	if len(filteredChilds) == 0 && node.GetValue() == nil && node.GetDeviationValue() == nil {
 		return nil
 	}
 

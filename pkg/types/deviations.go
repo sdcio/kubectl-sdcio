@@ -3,14 +3,16 @@ package types
 import "strings"
 
 type Deviations struct {
+	target     string
 	name       string
 	namespace  string
 	typ        DeviationType
 	deviations []Deviation
 }
 
-func NewDeviations(name string, deviationType DeviationType, length int) *Deviations {
+func NewDeviations(target string, name string, deviationType DeviationType, length int) *Deviations {
 	return &Deviations{
+		target:     target,
 		name:       name,
 		typ:        deviationType,
 		deviations: make([]Deviation, 0, length),
@@ -23,6 +25,10 @@ func (d *Deviations) Name() string {
 
 func (d *Deviations) Length() int {
 	return len(d.deviations)
+}
+
+func (d *Deviations) Target() string {
+	return d.target
 }
 
 func (d *Deviations) Namespace() string {
