@@ -88,6 +88,6 @@ func applyTargetClearDeviation(ctx context.Context, cl ApplyClient, namespace st
 		return err
 	}
 
-	fmt.Fprintf(out, "targetcleardeviation/%s applied\n", resource.Name)
+	_, _ = fmt.Fprintf(out, "targetcleardeviation/%s applied\n", resource.Name)
 	return nil
 }
