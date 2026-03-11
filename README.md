@@ -76,7 +76,7 @@ kubectl sdc blame --target sros --filter-owner "production.intent-emergency" --f
 
 # Combine multiple filters to find specific configuration
 kubectl sdc blame --target sros --filter-path "/config/service/emergency/*" --filter-leaf "ambulance" --filter-owner "test-system.*"
-
+```
 
 ### runningconfig
 The runningconfig command retrieves the running configuration for a target from the data-server.
