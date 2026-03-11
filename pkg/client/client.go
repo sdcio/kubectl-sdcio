@@ -14,17 +14,26 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	// TargetLabel is the label used to identify targets in Kubernetes
+	TargetLabel = "config.sdcio.dev/targetName"
+)
+
 type ConfigClient struct {
-	c        *configCR.Clientset
+	// c is the clientset for interacting with the config server CRDs
+	c *configCR.Clientset
+	// mdClient is used for fetching metadata like names of resources without fetching the entire object
 	mdClient metadata.Interface
 }
 
 func NewConfigClient(restConfig *rest.Config) (*ConfigClient, error) {
+	// Create the clientset for the config server CRDs
 	clientset, err := configCR.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create a dynamic client for metadata operations
 	mdclient, err := metadata.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -36,32 +45,26 @@ func NewConfigClient(restConfig *rest.Config) (*ConfigClient, error) {
 	}, nil
 }
 
-func (c *ConfigClient) GetDeviations(ctx context.Context, namespace string, deviationName string) (*types.Deviations, error) {
+// GetDeviationByName retrieves a specific deviation by name and converts it to the internal type
+func (c *ConfigClient) GetDeviationByName(ctx context.Context, namespace string, deviationName string) (*types.IntentDeviations, error) {
 	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).Get(ctx, deviationName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertDeviations(resp)
+	return ConvertDeviationIntent(resp)
 }
 
-func (c *ConfigClient) ListDeviations(ctx context.Context, namespace string, labels map[string]string) ([]*types.Deviations, error) {
-	labelselector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: labels})
+// GetDeviationsByTarget retrieves all deviations for a given target and converts them to the internal type
+func (c *ConfigClient) GetDeviationsByTarget(ctx context.Context, namespace string, targetName string) (types.Deviations, error) {
+	labelselector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: map[string]string{TargetLabel: targetName}})
+
 	resp, err := c.c.ConfigV1alpha1().Deviations(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelselector})
 	if err != nil {
 		return nil, err
 	}
 
-	var deviations []*types.Deviations
-	for _, item := range resp.Items {
-		dev, err := ConvertDeviations(&item)
-		if err != nil {
-			return nil, err
-		}
-		deviations = append(deviations, dev)
-	}
-
-	return deviations, nil
+	return ConvertDeviations(resp)
 }
 
 func (c *ConfigClient) ListDeviationNames(ctx context.Context, namespace string, labels map[string]string) ([]string, error) {
@@ -148,43 +151,44 @@ func (c *ConfigClient) ListRunningConfigNames(ctx context.Context, namespace str
 	return result, nil
 }
 
-// ClearTargetDeviations clears the specified deviation paths on a target
-func (c *ConfigClient) ClearTargetDeviations(ctx context.Context, namespace, targetName, configName string, paths []string) error {
-	if len(paths) == 0 {
-		return nil // Nothing to clear
+// NewTargetClearDeviation builds a TargetClearDeviation request body from
+// internal deviation state, ready to be posted to the cleardeviation subresource.
+func NewTargetClearDeviation(namespace, targetName string, devs types.Deviations) *v1alpha1.TargetClearDeviation {
+	content := make([]v1alpha1.TargetClearDeviationConfig, 0, len(devs))
+	for _, d := range devs {
+		content = append(content, v1alpha1.TargetClearDeviationConfig{
+			Name:  d.Name(),
+			Paths: d.DeviationPaths(),
+		})
 	}
 
-	// Get the REST client from the clientset
-	restClient := c.c.ConfigV1alpha1().RESTClient()
-
-	// Build the request body using the typed struct
-	// The Config field expects a slice of TargetClearDeviationConfig
-	// We create a single config entry with the target name and paths
-	clearRequest := &v1alpha1.TargetClearDeviation{
+	r := &v1alpha1.TargetClearDeviation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       v1alpha1.TargetClearDeviationKind,
 			APIVersion: v1alpha1.SchemeGroupVersion.Identifier(),
 		},
 		Spec: &v1alpha1.TargetClearDeviationSpec{
-			Config: []v1alpha1.TargetClearDeviationConfig{
-				{
-					Name:  configName,
-					Paths: paths,
-				},
-			},
+			Config: content,
 		},
 	}
-	clearRequest.SetName(targetName)
-	clearRequest.SetNamespace(namespace)
+	r.SetName(targetName)
+	r.SetNamespace(namespace)
+	return r
+}
 
-	// Make the POST request to the cleardeviation subresource
+// ClearTargetDeviations posts a pre-built TargetClearDeviation to the
+// cleardeviation subresource. Use NewTargetClearDeviation (convert.go) to
+// construct the resource from a types.Deviations value.
+func (c *ConfigClient) ClearTargetDeviations(ctx context.Context, resource *v1alpha1.TargetClearDeviation) error {
+	restClient := c.c.ConfigV1alpha1().RESTClient()
+
 	result := restClient.
 		Post().
-		Namespace(namespace).
+		Namespace(resource.Namespace).
 		Resource("targets").
-		Name(targetName).
-		SubResource(clearRequest.SubResourceName()).
-		Body(clearRequest).
+		Name(resource.Name).
+		SubResource(resource.SubResourceName()).
+		Body(resource).
 		Do(ctx)
 
 	return result.Error()

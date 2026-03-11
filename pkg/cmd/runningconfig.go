@@ -19,57 +19,16 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/sdcio/kubectl-sdc/pkg/client"
+	"github.com/sdcio/kubectl-sdc/pkg/commands/runningconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/client-go/kubernetes"
 )
-
-// ValidFormats lists all supported output formats
-var ValidFormats = []client.Format{
-	client.FormatJSON,
-	client.FormatJSONIETF,
-	client.FormatXML,
-	client.FormatXPath,
-	client.FormatYAML,
-}
-
-// formatListString returns a comma-separated string of valid formats
-func formatListString() string {
-	return strings.Join(validFormatStrings(), ", ")
-}
-
-// validFormatStrings returns the list of valid format strings
-func validFormatStrings() []string {
-	formatted := make([]string, len(ValidFormats))
-	for i, f := range ValidFormats {
-		formatted[i] = string(f)
-	}
-	return formatted
-}
-
-// ParseFormat converts a format string to internal Format enum
-func ParseFormat(formatStr string) (client.Format, error) {
-	switch client.Format(strings.ToLower(formatStr)) {
-	case client.FormatJSON:
-		return client.FormatJSON, nil
-	case client.FormatJSONIETF:
-		return client.FormatJSONIETF, nil
-	case client.FormatXML:
-		return client.FormatXML, nil
-	case client.FormatXPath:
-		return client.FormatXPath, nil
-	case client.FormatYAML:
-		return client.FormatYAML, nil
-	default:
-		return "", fmt.Errorf("invalid format %q, must be one of: %s", formatStr, formatListString())
-	}
-}
 
 type RunningConfigOptions struct {
 	target    string
@@ -115,7 +74,7 @@ func (o *RunningConfigOptions) Validate() error {
 		return fmt.Errorf("namespace not set")
 	}
 	// Parse format string
-	format, err := ParseFormat(o.formatStr)
+	format, err := runningconfig.ParseFormat(o.formatStr)
 	if err != nil {
 		return err
 	}
@@ -141,18 +100,9 @@ func (o *RunningConfigOptions) Run(_ *cobra.Command) error {
 		return fmt.Errorf("data-server service has no ports")
 	}
 
-	// Find the port named "data-service"
-	var port int
-	for _, p := range svc.Spec.Ports {
-		if p.Name == "data-service" {
-			port = int(p.TargetPort.IntVal)
-			break
-		}
-	}
-
-	if port == 0 {
-		// Default to common port if not found
-		port = 56000
+	port, err := runningconfig.ResolveDataServicePort(svc)
+	if err != nil {
+		return err
 	}
 
 	// Create data client to fetch running config from data-server
@@ -166,23 +116,14 @@ func (o *RunningConfigOptions) Run(_ *cobra.Command) error {
 		}
 	}()
 
-	// Connect to data-server (establishes port-forward)
-	if err := dataClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to data-server: %w", err)
-	}
-
-	// Construct datastore name as namespace.target
-	datastoreName := fmt.Sprintf("%s.%s", o.namespace, o.target)
-
-	// Fetch configuration in the requested format
-	configOutput, err := dataClient.GetIntent(ctx, o.format, datastoreName, "running")
+	output, err := runningconfig.Run(ctx, dataClient, o.namespace, o.target, o.format)
 	if err != nil {
 		return err
 	}
 
 	// Display the formatted output
-	fmt.Println(configOutput.String())
-	return nil
+	_, err = fmt.Fprintln(o.Out, output)
+	return err
 }
 
 // NewCmdRunningConfig provides a cobra command wrapping RunningConfigOptions
@@ -216,12 +157,12 @@ func NewCmdRunningConfig(streams genericiooptions.IOStreams) (*cobra.Command, er
 	}
 
 	// Build format help text dynamically
-	formatHelp := fmt.Sprintf("output format (%s)", formatListString())
+	formatHelp := fmt.Sprintf("output format (%s)", runningconfig.FormatListString())
 	cmd.Flags().StringVar(&o.formatStr, "format", "xpath", formatHelp)
 
 	// Format flag completion
 	if err := cmd.RegisterFlagCompletionFunc("format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validFormatStrings(), cobra.ShellCompDirectiveNoFileComp
+		return runningconfig.ValidFormatStrings(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		return nil, err
 	}

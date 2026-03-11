@@ -51,7 +51,7 @@ func deviationCompletionFunc(o *DeviationOptions) func(cmd *cobra.Command, args 
 
 		var selectLabels map[string]string
 		if o.target != "" {
-			selectLabels = map[string]string{"config.sdcio.dev/targetName": o.target}
+			selectLabels = map[string]string{client.TargetLabel: o.target}
 		}
 
 		comps, err := cl.ListDeviationNames(context.Background(), o.GetNamespace(), selectLabels)

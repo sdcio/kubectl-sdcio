@@ -31,6 +31,7 @@ import (
 type DeviationOptions struct {
 	target    string
 	deviation string
+	format    string
 	preview   bool
 	revert    bool
 	GenericOptions
@@ -66,11 +67,14 @@ func (o *DeviationOptions) Complete(_ *cobra.Command, _ []string) error {
 
 // Validate validates the options
 func (o *DeviationOptions) Validate() error {
-	if o.deviation == "" {
-		return fmt.Errorf("deviation not set")
+	if o.deviation == "" && o.target == "" {
+		return fmt.Errorf("deviation or target not set")
 	}
 	if o.namespace == "" {
 		return fmt.Errorf("namespace not set")
+	}
+	if _, err := parseDeviationOutputFormat(o.format); err != nil {
+		return err
 	}
 	return nil
 }
@@ -85,23 +89,33 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 	opts := []deviations.DeviationOptionSetter{
 		deviations.WithPreview(o.preview),
 		deviations.WithRevert(o.revert),
+		deviations.WithDeviationName(o.deviation),
+		deviations.WithTarget(o.target),
 	}
 
 	// Run the deviation selection
-	paths, err := deviations.Run(ctx, cl, deviations.NewDeviationOptions(o.deviation, o.namespace, opts...))
+	selectedDeviations, err := deviations.Run(ctx, cl, deviations.NewDeviationOptions(o.namespace, opts...))
 	if err != nil {
 		return err
 	}
 
-	// Otherwise, display the selected paths
-	for _, path := range paths {
-		_, err = fmt.Fprintln(o.Out, path)
-		if err != nil {
-			return err
-		}
+	if selectedDeviations == nil || !selectedDeviations.HasDeviations() {
+		return nil
 	}
 
-	return nil
+	format, err := parseDeviationOutputFormat(o.format)
+	if err != nil {
+		return err
+	}
+
+	output, err := formatSelectedDeviations(selectedDeviations, format)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintln(o.Out, output)
+
+	return err
 }
 
 // NewCmdDeviation provides a cobra command wrapping DeviationOptions
@@ -131,17 +145,18 @@ func NewCmdDeviation(streams genericiooptions.IOStreams) (*cobra.Command, error)
 
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the deviations for. This is simply to assist auto-completion of the deviation name")
 	cmd.Flags().StringVar(&o.deviation, "deviation", "", "deviation resource name to query")
+	cmd.Flags().StringVar(&o.format, "format", string(deviationOutputFormatText), fmt.Sprintf("output format (%s)", deviationOutputFormatListString()))
 	cmd.Flags().BoolVar(&o.preview, "preview", false, "show preview of deviations")
 	cmd.Flags().BoolVar(&o.revert, "revert", false, "revert deviations")
-	err := cmd.MarkFlagRequired("deviation")
-	if err != nil {
-		return nil, err
-	}
+	cmd.MarkFlagsOneRequired("deviation", "target")
 
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {
 		return nil, err
 	}
 	if err := cmd.RegisterFlagCompletionFunc("deviation", deviationCompletionFunc(o)); err != nil {
+		return nil, err
+	}
+	if err := cmd.RegisterFlagCompletionFunc("format", deviationFormatCompletionFunc()); err != nil {
 		return nil, err
 	}
 	o.configFlags.AddFlags(cmd.Flags())

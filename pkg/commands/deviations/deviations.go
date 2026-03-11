@@ -8,13 +8,21 @@ import (
 	"unicode/utf8"
 
 	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
+	"github.com/sdcio/config-server/apis/config/v1alpha1"
+	"github.com/sdcio/kubectl-sdc/pkg/client"
 	"github.com/sdcio/kubectl-sdc/pkg/types"
 )
 
+// findDeviationIndexes wraps fuzzyfinder multi-select so tests can inject selections deterministically.
+var findDeviationIndexes = func(deviations []*types.Deviation, display func(i int) string, opts ...fuzzyfinder.Option) ([]int, error) {
+	return fuzzyfinder.FindMulti(deviations, display, opts...)
+}
+
 // DeviationClient defines the interface for deviation operations
 type DeviationClient interface {
-	GetDeviations(ctx context.Context, namespace string, deviationName string) (*types.Deviations, error)
-	ClearTargetDeviations(ctx context.Context, namespace, targetName, configName string, paths []string) error
+	GetDeviationByName(ctx context.Context, namespace string, deviationName string) (*types.IntentDeviations, error)
+	GetDeviationsByTarget(ctx context.Context, namespace string, targetName string) (types.Deviations, error)
+	ClearTargetDeviations(ctx context.Context, resource *v1alpha1.TargetClearDeviation) error
 }
 
 // reasonInitial returns the first uppercase character of the reason in brackets
@@ -38,7 +46,7 @@ func alignLabel(label string, width int) string {
 }
 
 // addPreviewOpt adds a preview window option to the fuzzy finder
-func addPreviewOpt(opts []fuzzyfinder.Option, deviations []types.Deviation) []fuzzyfinder.Option {
+func addPreviewOpt(opts []fuzzyfinder.Option, deviations []*types.Deviation) []fuzzyfinder.Option {
 	opts = append(opts, fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
 		if i == -1 {
 			return ""
@@ -55,76 +63,113 @@ func addPreviewOpt(opts []fuzzyfinder.Option, deviations []types.Deviation) []fu
 		// build preview string with aligned labels
 		preview := fmt.Sprintf(
 			"%s %s\n%s %s\n%s %s\n%s %s\n",
-			alignLabel("Path:", maxLabel), deviations[i].Path(),
-			alignLabel("Actual:", maxLabel), deviations[i].ActualValue(),
-			alignLabel("Desired:", maxLabel), deviations[i].DesiredValue(),
-			alignLabel("Reason:", maxLabel), deviations[i].Reason(),
+			alignLabel("Path:", maxLabel), deviations[i].Path,
+			alignLabel("Actual:", maxLabel), deviations[i].ActualValue,
+			alignLabel("Desired:", maxLabel), deviations[i].DesiredValue,
+			alignLabel("Reason:", maxLabel), deviations[i].Reason,
 		)
 		return preview
 	}))
 	return opts
 }
 
-// Run executes the deviation selection and returns the selected paths
-func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) ([]string, error) {
-	dev, err := cl.GetDeviations(ctx, do.namespace, do.deviationName)
-	if err != nil {
-		return nil, err
+type deviationViewConfig struct {
+	header     string
+	searchItem func(i int) string
+	display    func(i int) string
+}
+
+func buildDeviationViewConfig(devs types.Deviations, deviations []*types.Deviation, do *DeviationOptions, maxNameLength int) deviationViewConfig {
+	if devs.MultipleIntents() {
+		return deviationViewConfig{
+			header: fmt.Sprintf("Namespace: %s, Target: %s", do.namespace, do.target),
+			searchItem: func(i int) string {
+				return fmt.Sprintf("%s%s", deviations[i].DesiredValue, deviations[i].ActualValue)
+			},
+			display: func(i int) string {
+				return fmt.Sprintf("%-*s %s %s", maxNameLength, deviations[i].Name(), reasonInitial(deviations[i].Reason), deviations[i].Path)
+			},
+		}
 	}
 
-	if dev.Length() == 0 {
+	return deviationViewConfig{
+		header: fmt.Sprintf("Namespace: %s, Deviation: %s [%s]", do.namespace, devs.First().Name(), devs.First().Type()),
+		searchItem: func(i int) string {
+			return fmt.Sprintf("%s%s%s%s", deviations[i].Name(), deviations[i].Reason, deviations[i].DesiredValue, deviations[i].ActualValue)
+		},
+		display: func(i int) string {
+			return fmt.Sprintf("%s %s", reasonInitial(deviations[i].Reason), deviations[i].Path)
+		},
+	}
+}
+
+// Run executes the deviation selection and returns the selected deviations
+func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.Deviations, error) {
+	var err error
+	devs := types.Deviations{}
+
+	switch {
+	case do.deviationName != "":
+		dev, err := cl.GetDeviationByName(ctx, do.namespace, do.deviationName)
+		if err != nil {
+			return nil, err
+		}
+		devs.AddDeviation(dev)
+	case do.target != "":
+		devs, err = cl.GetDeviationsByTarget(ctx, do.namespace, do.target)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("deviation or target not set")
+	}
+
+	if !devs.HasDeviations() {
 		return nil, fmt.Errorf("no deviations found")
 	}
 
-	deviations := dev.Deviations()
+	// collect all the deviations into a single slice for fuzzy finding
+	deviations := devs.Items()
 
-	opts := []fuzzyfinder.Option{
-		fuzzyfinder.WithHeader(fmt.Sprintf("Namespace: %s, Deviation: %s [%s]", dev.Namespace(), dev.Name(), dev.Type())),
-		fuzzyfinder.WithSearchItemFunc(func(i int) string {
-			return fmt.Sprintf("%s%s%s", deviations[i].Reason(), deviations[i].DesiredValue(), deviations[i].ActualValue())
-		}),
-	}
+	// determine the maximum length of the deviation names to help with formatting the display
+	maxNameLength := devs.MaxDeviationNameLength()
+	opts := []fuzzyfinder.Option{}
+
+	viewCfg := buildDeviationViewConfig(devs, deviations, do, maxNameLength)
+	opts = append(opts, fuzzyfinder.WithHeader(viewCfg.header))
+	opts = append(opts, fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem))
 
 	// add preview as an option if the flag is set
 	if do.preview {
-		opts = addPreviewOpt(opts, dev.Deviations())
+		opts = addPreviewOpt(opts, deviations)
 	}
 
 	// Use fuzzy finder with multi-select to choose deviations to display
-	idxs, err := fuzzyfinder.FindMulti(
-		deviations,
-		func(i int) string {
-			return fmt.Sprintf("%s %s", reasonInitial(deviations[i].Reason()), deviations[i].Path())
-		},
-		opts...,
-	)
+	idxs, err := findDeviationIndexes(deviations, viewCfg.display, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	// Collect selected deviation paths
-	paths := make([]string, 0, len(idxs))
-	for _, idx := range idxs {
-		paths = append(paths, deviations[idx].Path())
-	}
-
-	if len(paths) == 0 {
+	if len(idxs) == 0 {
 		return nil, nil
 	}
 
+	// Collect selected deviations based on selected indexes
+	selectedDeviations := deviations.FilterByIndexes(idxs)
+
 	// If revert is requested, clear the deviations
-	if do.revert {
-		return nil, revert(ctx, cl, do.namespace, dev.Target(), do.deviationName, paths)
+	if do.revert && selectedDeviations.HasDeviations() {
+		return nil, revert(ctx, cl, do.namespace, selectedDeviations.First().Target(), selectedDeviations)
 	}
 
-	return paths, nil
+	return selectedDeviations, nil
 }
 
 // revert clears the specified paths on a target
-func revert(ctx context.Context, cl DeviationClient, namespace, targetName, configName string, paths []string) error {
-	if len(paths) == 0 {
-		return fmt.Errorf("no paths provided to clear")
+func revert(ctx context.Context, cl DeviationClient, namespace, targetName string, devs types.Deviations) error {
+	if !devs.HasDeviations() {
+		return fmt.Errorf("no deviations provided to clear")
 	}
 
-	return cl.ClearTargetDeviations(ctx, namespace, targetName, configName, paths)
+	return cl.ClearTargetDeviations(ctx, client.NewTargetClearDeviation(namespace, targetName, devs))
 }
