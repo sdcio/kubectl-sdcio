@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// GenericOptions holds common options for all commands and is embedded in specific command options structs
 type GenericOptions struct {
 	restConfig  *rest.Config
 	configFlags *genericclioptions.ConfigFlags

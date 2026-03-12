@@ -45,9 +45,9 @@ func alignLabel(label string, width int) string {
 	return label + strings.Repeat(" ", width-len(label))
 }
 
-// addPreviewOpt adds a preview window option to the fuzzy finder
-func addPreviewOpt(opts []fuzzyfinder.Option, deviations []*types.Deviation) []fuzzyfinder.Option {
-	opts = append(opts, fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+// getPreviewOpt adds a preview window option to the fuzzy finder
+func getPreviewOpt(deviations []*types.Deviation) fuzzyfinder.Option {
+	return fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
 		if i == -1 {
 			return ""
 		}
@@ -69,8 +69,7 @@ func addPreviewOpt(opts []fuzzyfinder.Option, deviations []*types.Deviation) []f
 			alignLabel("Reason:", maxLabel), deviations[i].Reason,
 		)
 		return preview
-	}))
-	return opts
+	})
 }
 
 type deviationViewConfig struct {
@@ -136,15 +135,22 @@ func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.D
 	opts := []fuzzyfinder.Option{}
 
 	viewCfg := buildDeviationViewConfig(devs, deviations, do, maxNameLength)
-	opts = append(opts, fuzzyfinder.WithHeader(viewCfg.header), fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem))
-
-	// add preview as an option if the flag is set
-	if do.Preview() {
-		opts = addPreviewOpt(opts, deviations)
-	}
+	opts = append(opts,
+		fuzzyfinder.WithHeader(viewCfg.header),
+		fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem),
+		fuzzyfinder.WithPreviewVisible(do.Preview()),
+		getPreviewOpt(deviations),
+	)
 
 	if do.InitialQuery() != "" {
 		opts = append(opts, fuzzyfinder.WithQuery(do.InitialQuery()))
+	}
+
+	if do.PreSelect() != "" {
+		opts = append(opts, fuzzyfinder.WithPreselected(func(i int) bool {
+			x := strings.HasPrefix(deviations[i].Path, do.PreSelect())
+			return x
+		}))
 	}
 
 	// Use fuzzy finder with multi-select to choose deviations to display

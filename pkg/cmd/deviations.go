@@ -28,6 +28,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
+// DeviationOptions defines raw options for the deviation command as provided by the user via cobra flags
 type DeviationOptions struct {
 	target       string
 	deviation    string
@@ -35,6 +36,7 @@ type DeviationOptions struct {
 	preview      bool
 	revert       bool
 	initialQuery string
+	preselect    string
 	GenericOptions
 }
 
@@ -93,6 +95,7 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 		deviations.WithDeviationName(o.deviation),
 		deviations.WithTarget(o.target),
 		deviations.WithInitialQuery(o.initialQuery),
+		deviations.WithPreSelect(o.preselect),
 	}
 
 	// Run the deviation selection
@@ -147,6 +150,7 @@ func NewCmdDeviation(streams genericiooptions.IOStreams) (*cobra.Command, error)
 
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the deviations for. This is simply to assist auto-completion of the deviation name")
 	cmd.Flags().StringVar(&o.deviation, "deviation", "", "deviation resource name to query")
+	cmd.Flags().StringVar(&o.preselect, "preselect", "", "preselect a deviation path for fuzzy finder")
 	cmd.Flags().StringVar(&o.format, "format", string(deviationOutputFormatText), fmt.Sprintf("output format (%s)", deviationOutputFormatListString()))
 	cmd.Flags().BoolVar(&o.preview, "preview", false, "show preview of deviations")
 	cmd.Flags().BoolVar(&o.revert, "revert", false, "revert deviations")

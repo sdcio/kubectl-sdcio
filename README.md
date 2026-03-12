@@ -120,6 +120,7 @@ The `--format` flag controls the output format. Supported values are `text` (def
 The `--preview` flag toggles the details preview panel for the currently selected path.
 The `--revert` flag clears the selected deviations on the target.
 The `--query` flag sets the initial fuzzy finder search query when the interactive view opens.
+The `--preselect` flag pre-selects all deviation paths that start with the given prefix when the interactive view opens.
 
 `--revert` can be used with `--target`, `--deviation`, or both, and is compatible with `--preview`.
 
@@ -130,9 +131,32 @@ Selection notes:
 - When `--revert` is set, the selected entries are cleared on the target.
 
 Keyboard shortcuts:
-- Tab selects entries (multi selection is supported).
-- Shift + Left/Right Arrow horizontally scrolls the list.
-- Ctrl + O toggles searching for paths only vs paths and values.
+
+Navigation:
+- `↑` / `Ctrl+P` / `Ctrl+K` — move up
+- `↓` / `Ctrl+N` / `Ctrl+J` — move down
+- `PgUp` / `PgDn` — page up / page down
+- `Shift+←` / `Shift+→` — scroll list horizontally
+
+Selection:
+- `Tab` — toggle selection for the current item (multi-select)
+- `Ctrl+S` — toggle between all-items view and selected-items view
+- `Enter` — confirm selection and exit
+- `Esc` / `Ctrl+C` / `Ctrl+D` — abort and exit
+
+Search query:
+- `←` / `Ctrl+B` — move cursor left in query
+- `→` / `Ctrl+F` — move cursor right in query
+- `Home` / `Ctrl+A` — jump to start of query
+- `End` / `Ctrl+E` — jump to end of query
+- `Backspace` — delete previous character
+- `Delete` — delete current character
+- `Ctrl+W` — delete previous word
+- `Ctrl+U` — clear query from cursor to beginning
+- `Ctrl+O` — toggle searching paths only vs. paths and values
+
+Preview:
+- `Ctrl+T` — toggle preview window visibility
 
 Example (preview a deviation):
 ```
