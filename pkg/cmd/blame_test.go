@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"testing"
 
+	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
 	"github.com/sdcio/kubectl-sdc/pkg/commands/blame"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
@@ -70,6 +72,14 @@ func TestBlameFormat_DefaultAndCompletion(t *testing.T) {
 		t.Fatalf("default format = %q, want %q", got, blame.BlameFormatTree)
 	}
 
+	interactiveFlag := cmd.Flags().Lookup("interactive")
+	if interactiveFlag == nil {
+		t.Fatal("interactive flag not registered")
+	}
+	if got := interactiveFlag.DefValue; got != "false" {
+		t.Fatalf("default interactive = %q, want %q", got, "false")
+	}
+
 	comps, directive := formatCompletionFunc()(&cobra.Command{}, nil, "")
 	if directive != cobra.ShellCompDirectiveDefault {
 		t.Fatalf("completion directive = %v, want %v", directive, cobra.ShellCompDirectiveDefault)
@@ -92,5 +102,98 @@ func TestNewCmdBlameRequiresTarget(t *testing.T) {
 	err = cmd.ValidateRequiredFlags()
 	if err == nil || err.Error() != `required flag(s) "target" not set` {
 		t.Fatalf("ValidateRequiredFlags() error = %v, want %q", err, `required flag(s) "target" not set`)
+	}
+}
+
+func TestSelectXPathResult(t *testing.T) {
+	tests := []struct {
+		name        string
+		lines       []string
+		interactive bool
+		selector    func(lines []string, opts ...fuzzyfinder.Option) ([]int, error)
+		want        string
+		wantErr     bool
+	}{
+		{
+			name:        "non interactive returns full output",
+			lines:       []string{"/a", "/b"},
+			interactive: false,
+			want:        "/a\n/b",
+		},
+		{
+			name:        "interactive returns selected lines",
+			lines:       []string{"/a", "/b", "/c"},
+			interactive: true,
+			selector: func(lines []string, opts ...fuzzyfinder.Option) ([]int, error) {
+				if len(lines) != 3 {
+					t.Fatalf("expected 3 lines, got %d", len(lines))
+				}
+				return []int{0, 2}, nil
+			},
+			want: "/a\n/c",
+		},
+		{
+			name:        "interactive no selection returns empty",
+			lines:       []string{"/a", "/b"},
+			interactive: true,
+			selector: func(_ []string, _ ...fuzzyfinder.Option) ([]int, error) {
+				return []int{}, nil
+			},
+			want: "",
+		},
+		{
+			name:        "interactive abort returns empty",
+			lines:       []string{"/a", "/b"},
+			interactive: true,
+			selector: func(_ []string, _ ...fuzzyfinder.Option) ([]int, error) {
+				return nil, fuzzyfinder.ErrAbort
+			},
+			want: "",
+		},
+		{
+			name:        "interactive selector error bubbles up",
+			lines:       []string{"/a", "/b"},
+			interactive: true,
+			selector: func(_ []string, _ ...fuzzyfinder.Option) ([]int, error) {
+				return nil, errors.New("boom")
+			},
+			wantErr: true,
+		},
+		{
+			name:        "interactive invalid selected index returns error",
+			lines:       []string{"/a", "/b"},
+			interactive: true,
+			selector: func(_ []string, _ ...fuzzyfinder.Option) ([]int, error) {
+				return []int{4}, nil
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := findBlameXPathIndexes
+			defer func() { findBlameXPathIndexes = orig }()
+
+			if tt.selector != nil {
+				findBlameXPathIndexes = tt.selector
+			}
+
+			got, err := selectXPathResult(tt.lines, tt.interactive)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got != tt.want {
+				t.Fatalf("result = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

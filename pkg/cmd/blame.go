@@ -18,9 +18,12 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
 	"github.com/spf13/cobra"
 
 	"github.com/sdcio/kubectl-sdc/pkg/client"
@@ -32,11 +35,45 @@ import (
 type BlameOptions struct {
 	target          string
 	format          string
+	interactive     bool
 	filterLeaf      []string
 	filterOwner     []string
 	filterPath      []string
 	filterDeviation bool
 	GenericOptions
+}
+
+// findBlameXPathIndexes wraps fuzzyfinder multi-select so tests can inject deterministic selections.
+var findBlameXPathIndexes = func(lines []string, opts ...fuzzyfinder.Option) ([]int, error) {
+	return fuzzyfinder.FindMulti(lines, func(i int) string { return lines[i] }, opts...)
+}
+
+func selectXPathResult(lines []string, interactive bool) (string, error) {
+	if !interactive {
+		return strings.Join(lines, "\n"), nil
+	}
+
+	idxs, err := findBlameXPathIndexes(lines, fuzzyfinder.WithHeader("Blame (Tab to select, Enter to confirm)"))
+	if err != nil {
+		if errors.Is(err, fuzzyfinder.ErrAbort) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	if len(idxs) == 0 {
+		return "", nil
+	}
+
+	selected := make([]string, 0, len(idxs))
+	for _, idx := range idxs {
+		if idx < 0 || idx >= len(lines) {
+			return "", fmt.Errorf("invalid selection index: %d", idx)
+		}
+		selected = append(selected, lines[idx])
+	}
+
+	return strings.Join(selected, "\n"), nil
 }
 
 // NewBlameOptions provides an instance of NamespaceOptions with default values
@@ -118,7 +155,11 @@ func (o *BlameOptions) Run(_ *cobra.Command) error {
 	case blame.BlameFormatTree:
 		result = out.ToString()
 	case blame.BlameFormatXPath:
-		result = out.StringXPath()
+
+		result, err = selectXPathResult(out.StringSliceXPath(), o.interactive)
+		if err != nil {
+			return fmt.Errorf("failed to select xpath result: %w", err)
+		}
 	default:
 		return fmt.Errorf("unknown blame format: %v", format)
 	}
@@ -160,6 +201,7 @@ func NewCmdBlame(streams genericiooptions.IOStreams) (*cobra.Command, error) {
 	cmd.Flags().StringSliceVar(&o.filterOwner, "filter-owner", nil, "filter by owner name (supports wildcards, can be specified multiple times)")
 	cmd.Flags().StringSliceVar(&o.filterPath, "filter-path", nil, "filter by full path (supports wildcards, can be specified multiple times)")
 	cmd.Flags().StringVar(&o.format, "format", "tree", fmt.Sprintf("output format (%s)", blame.FormatOptionsString()))
+	cmd.Flags().BoolVar(&o.interactive, "interactive", false, "use interactive selector for xpath output")
 	cmd.Flags().BoolVar(&o.filterDeviation, "filter-deviation", false, "filter deviations only")
 
 	if err != nil {

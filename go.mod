@@ -11,7 +11,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/ktr0731/go-fuzzyfinder v0.9.0
 	github.com/sdcio/config-server v0.0.56-0.20260306131400-036f632d2a7b
-	github.com/sdcio/sdc-protos v0.0.51-0.20260304120533-f0e62d96331e
+	github.com/sdcio/sdc-protos v0.0.51-0.20260312105324-fdf21a9d8280
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	go.uber.org/mock v0.6.0

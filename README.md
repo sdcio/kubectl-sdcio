@@ -15,6 +15,7 @@ kubectl-sdc provides the following functionalities.
 The blame command provides a tree based view on the actual running device configuration of the given SDC target.
 
 It takes the `--target` parameter, that defines which targets is to be displayed.
+The `--format` parameter supports `tree` (default) and `xpath`; with `--format=xpath`, the `--interactive` flag opens a fuzzyfinder with multi-select (`Tab` to select) and prints the selected XPath lines.
 
 For every configured attribute you will see the highes preference value as well as the source of that value.
 - `running` are attributes that come from the device itself, where no intent exist in sdc.
