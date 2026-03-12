@@ -29,11 +29,12 @@ import (
 )
 
 type DeviationOptions struct {
-	target    string
-	deviation string
-	format    string
-	preview   bool
-	revert    bool
+	target       string
+	deviation    string
+	format       string
+	preview      bool
+	revert       bool
+	initialQuery string
 	GenericOptions
 }
 
@@ -91,6 +92,7 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 		deviations.WithRevert(o.revert),
 		deviations.WithDeviationName(o.deviation),
 		deviations.WithTarget(o.target),
+		deviations.WithInitialQuery(o.initialQuery),
 	}
 
 	// Run the deviation selection
@@ -148,6 +150,7 @@ func NewCmdDeviation(streams genericiooptions.IOStreams) (*cobra.Command, error)
 	cmd.Flags().StringVar(&o.format, "format", string(deviationOutputFormatText), fmt.Sprintf("output format (%s)", deviationOutputFormatListString()))
 	cmd.Flags().BoolVar(&o.preview, "preview", false, "show preview of deviations")
 	cmd.Flags().BoolVar(&o.revert, "revert", false, "revert deviations")
+	cmd.Flags().StringVar(&o.initialQuery, "query", "", "initial query for fuzzy finder")
 	cmd.MarkFlagsOneRequired("deviation", "target")
 
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {

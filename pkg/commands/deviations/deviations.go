@@ -136,12 +136,15 @@ func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.D
 	opts := []fuzzyfinder.Option{}
 
 	viewCfg := buildDeviationViewConfig(devs, deviations, do, maxNameLength)
-	opts = append(opts, fuzzyfinder.WithHeader(viewCfg.header))
-	opts = append(opts, fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem))
+	opts = append(opts, fuzzyfinder.WithHeader(viewCfg.header), fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem))
 
 	// add preview as an option if the flag is set
-	if do.preview {
+	if do.Preview() {
 		opts = addPreviewOpt(opts, deviations)
+	}
+
+	if do.InitialQuery() != "" {
+		opts = append(opts, fuzzyfinder.WithQuery(do.InitialQuery()))
 	}
 
 	// Use fuzzy finder with multi-select to choose deviations to display
@@ -158,7 +161,7 @@ func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.D
 	selectedDeviations := deviations.FilterByIndexes(idxs)
 
 	// If revert is requested, clear the deviations
-	if do.revert && selectedDeviations.HasDeviations() {
+	if do.Revert() && selectedDeviations.HasDeviations() {
 		return nil, revert(ctx, cl, do.namespace, selectedDeviations.First().Target(), selectedDeviations)
 	}
 

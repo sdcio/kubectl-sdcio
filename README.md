@@ -119,6 +119,7 @@ At least one of `--target` or `--deviation` must be provided.
 The `--format` flag controls the output format. Supported values are `text` (default), `resource-yaml`, and `resource-json`.
 The `--preview` flag toggles the details preview panel for the currently selected path.
 The `--revert` flag clears the selected deviations on the target.
+The `--query` flag sets the initial fuzzy finder search query when the interactive view opens.
 
 `--revert` can be used with `--target`, `--deviation`, or both, and is compatible with `--preview`.
 
@@ -167,6 +168,11 @@ kubectl sdc deviation --deviation srl1 --preview
 Example (show all deviations for a target):
 ```bash
 kubectl sdc deviation --target srl1
+```
+
+Example (start the interactive view with an initial query):
+```bash
+kubectl sdc deviation --target srl1 --query interface
 ```
 
 Example (render selected deviations as a `TargetClearDeviation` manifest):

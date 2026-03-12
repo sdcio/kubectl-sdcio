@@ -8,7 +8,8 @@ type DeviationOptions struct {
 	// preview show the preview pane
 	preview bool
 	// revert the selected entries
-	revert bool
+	revert       bool
+	initialQuery string
 }
 
 type DeviationOptionSetter func(d *DeviationOptions)
@@ -43,6 +44,10 @@ func (d *DeviationOptions) Revert() bool {
 	return d.revert
 }
 
+func (d *DeviationOptions) InitialQuery() string {
+	return d.initialQuery
+}
+
 // Option setters
 func WithPreview(b bool) DeviationOptionSetter {
 	return func(d *DeviationOptions) {
@@ -65,5 +70,11 @@ func WithTarget(target string) DeviationOptionSetter {
 func WithDeviationName(name string) DeviationOptionSetter {
 	return func(d *DeviationOptions) {
 		d.deviationName = name
+	}
+}
+
+func WithInitialQuery(query string) DeviationOptionSetter {
+	return func(d *DeviationOptions) {
+		d.initialQuery = query
 	}
 }
