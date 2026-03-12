@@ -5,12 +5,15 @@ type DeviationOptions struct {
 	namespace string
 	// deviationName name which equals the config name
 	deviationName string
+	interactive   bool
 	// preview show the preview pane
 	preview bool
 	// revert the selected entries
-	revert       bool
-	initialQuery string
-	preselect    string
+	revert                     bool
+	initialQuery               string
+	selectPathPrefix           []string
+	filterPath                 []string
+	autoAcceptSelectPathPrefix bool
 }
 
 type DeviationOptionSetter func(d *DeviationOptions)
@@ -37,6 +40,10 @@ func (d *DeviationOptions) DeviationName() string {
 	return d.deviationName
 }
 
+func (d *DeviationOptions) Interactive() bool {
+	return d.interactive
+}
+
 func (d *DeviationOptions) Preview() bool {
 	return d.preview
 }
@@ -45,12 +52,20 @@ func (d *DeviationOptions) Revert() bool {
 	return d.revert
 }
 
-func (d *DeviationOptions) PreSelect() string {
-	return d.preselect
+func (d *DeviationOptions) SelectPathPrefix() []string {
+	return d.selectPathPrefix
+}
+
+func (d *DeviationOptions) FilterPath() []string {
+	return d.filterPath
 }
 
 func (d *DeviationOptions) InitialQuery() string {
 	return d.initialQuery
+}
+
+func (d *DeviationOptions) AutoAcceptSelectPathPrefix() bool {
+	return d.autoAcceptSelectPathPrefix
 }
 
 // Option setters
@@ -78,14 +93,32 @@ func WithDeviationName(name string) DeviationOptionSetter {
 	}
 }
 
+func WithInteractive(interactive bool) DeviationOptionSetter {
+	return func(d *DeviationOptions) {
+		d.interactive = interactive
+	}
+}
+
 func WithInitialQuery(query string) DeviationOptionSetter {
 	return func(d *DeviationOptions) {
 		d.initialQuery = query
 	}
 }
 
-func WithPreSelect(preselect string) DeviationOptionSetter {
+func WithSelectPathPrefix(prefixes []string) DeviationOptionSetter {
 	return func(d *DeviationOptions) {
-		d.preselect = preselect
+		d.selectPathPrefix = prefixes
+	}
+}
+
+func WithFilterPath(prefixes []string) DeviationOptionSetter {
+	return func(d *DeviationOptions) {
+		d.filterPath = prefixes
+	}
+}
+
+func WithAutoAcceptSelectPathPrefix(autoAccept bool) DeviationOptionSetter {
+	return func(d *DeviationOptions) {
+		d.autoAcceptSelectPathPrefix = autoAccept
 	}
 }

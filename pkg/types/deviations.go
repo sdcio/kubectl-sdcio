@@ -211,3 +211,36 @@ func (d DeviationSlice) FilterByIndexes(indexes []int) Deviations {
 	}
 	return filtered
 }
+
+func (d DeviationSlice) ToDeviations() Deviations {
+	res := Deviations{}
+	for _, dev := range d {
+		res.AddDeviationItem(dev)
+	}
+	return res
+}
+
+func (d DeviationSlice) FilterByPathPrefixes(prefixes []string) DeviationSlice {
+	if len(prefixes) == 0 {
+		return d
+	}
+	filtered := make(DeviationSlice, 0, len(d))
+	for _, dev := range d {
+		if matchesAnyPathPrefix(dev.Path, prefixes) {
+			filtered = append(filtered, dev)
+		}
+	}
+	return filtered
+}
+
+func matchesAnyPathPrefix(path string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if prefix == "" {
+			continue
+		}
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}

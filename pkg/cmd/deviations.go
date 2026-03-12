@@ -30,13 +30,16 @@ import (
 
 // DeviationOptions defines raw options for the deviation command as provided by the user via cobra flags
 type DeviationOptions struct {
-	target       string
-	deviation    string
-	format       string
-	preview      bool
-	revert       bool
-	initialQuery string
-	preselect    string
+	target                     string
+	deviation                  string
+	format                     string
+	interactive                bool
+	preview                    bool
+	revert                     bool
+	initialQuery               string
+	selectPathPrefix           []string
+	filterPath                 []string
+	autoAcceptSelectPathPrefix bool
 	GenericOptions
 }
 
@@ -76,6 +79,12 @@ func (o *DeviationOptions) Validate() error {
 	if o.namespace == "" {
 		return fmt.Errorf("namespace not set")
 	}
+	if !o.interactive && len(o.selectPathPrefix) > 0 {
+		return fmt.Errorf("--select-path-prefix requires --interactive")
+	}
+	if !o.interactive && o.autoAcceptSelectPathPrefix {
+		return fmt.Errorf("--auto-accept-select-path-prefix requires --interactive")
+	}
 	if _, err := parseDeviationOutputFormat(o.format); err != nil {
 		return err
 	}
@@ -90,12 +99,15 @@ func (o *DeviationOptions) Run(_ *cobra.Command) error {
 	}
 
 	opts := []deviations.DeviationOptionSetter{
+		deviations.WithInteractive(o.interactive),
 		deviations.WithPreview(o.preview),
 		deviations.WithRevert(o.revert),
 		deviations.WithDeviationName(o.deviation),
 		deviations.WithTarget(o.target),
 		deviations.WithInitialQuery(o.initialQuery),
-		deviations.WithPreSelect(o.preselect),
+		deviations.WithSelectPathPrefix(o.selectPathPrefix),
+		deviations.WithFilterPath(o.filterPath),
+		deviations.WithAutoAcceptSelectPathPrefix(o.autoAcceptSelectPathPrefix),
 	}
 
 	// Run the deviation selection
@@ -150,11 +162,14 @@ func NewCmdDeviation(streams genericiooptions.IOStreams) (*cobra.Command, error)
 
 	cmd.Flags().StringVar(&o.target, "target", "", "target to get the deviations for. This is simply to assist auto-completion of the deviation name")
 	cmd.Flags().StringVar(&o.deviation, "deviation", "", "deviation resource name to query")
-	cmd.Flags().StringVar(&o.preselect, "preselect", "", "preselect a deviation path for fuzzy finder")
+	cmd.Flags().BoolVar(&o.interactive, "interactive", false, "enable interactive fuzzy finder selection")
+	cmd.Flags().StringSliceVar(&o.selectPathPrefix, "select-path-prefix", nil, "mark matching path prefixes as selected in interactive mode")
+	cmd.Flags().StringSliceVar(&o.filterPath, "filter-path", nil, "filter deviation paths by prefix before selection")
+	cmd.Flags().BoolVar(&o.autoAcceptSelectPathPrefix, "auto-accept-select-path-prefix", false, "automatically confirm selected path prefixes in interactive mode")
 	cmd.Flags().StringVar(&o.format, "format", string(deviationOutputFormatText), fmt.Sprintf("output format (%s)", deviationOutputFormatListString()))
 	cmd.Flags().BoolVar(&o.preview, "preview", false, "show preview of deviations")
 	cmd.Flags().BoolVar(&o.revert, "revert", false, "revert deviations")
-	cmd.Flags().StringVar(&o.initialQuery, "query", "", "initial query for fuzzy finder")
+	cmd.Flags().StringVar(&o.initialQuery, "query", "", "initial query for interactive fuzzy finder")
 	cmd.MarkFlagsOneRequired("deviation", "target")
 
 	if err := cmd.RegisterFlagCompletionFunc("target", targetCompletionFunc(o)); err != nil {

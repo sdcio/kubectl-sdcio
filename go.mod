@@ -4,7 +4,7 @@ module github.com/sdcio/kubectl-sdc
 
 go 1.25.0
 
-replace github.com/ktr0731/go-fuzzyfinder => github.com/steiler/go-fuzzyfinder v0.2.0
+replace github.com/ktr0731/go-fuzzyfinder => github.com/steiler/go-fuzzyfinder v0.3.0
 
 require (
 	github.com/beevik/etree v1.6.0

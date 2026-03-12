@@ -2,6 +2,7 @@ package deviations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -17,6 +18,12 @@ import (
 var findDeviationIndexes = func(deviations []*types.Deviation, display func(i int) string, opts ...fuzzyfinder.Option) ([]int, error) {
 	return fuzzyfinder.FindMulti(deviations, display, opts...)
 }
+
+var (
+	ErrDeviationOrTargetNotSet        = errors.New("deviation or target not set")
+	ErrNoDeviationsFound              = errors.New("no deviations found")
+	ErrNoDeviationsAfterPathFiltering = errors.New("no deviations found after path filtering")
+)
 
 // DeviationClient defines the interface for deviation operations
 type DeviationClient interface {
@@ -102,58 +109,61 @@ func buildDeviationViewConfig(devs types.Deviations, deviations []*types.Deviati
 	}
 }
 
-// Run executes the deviation selection and returns the selected deviations
-func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.Deviations, error) {
-	var err error
-	devs := types.Deviations{}
-
+func loadDeviations(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.Deviations, error) {
 	switch {
 	case do.deviationName != "":
 		dev, err := cl.GetDeviationByName(ctx, do.namespace, do.deviationName)
 		if err != nil {
 			return nil, err
 		}
+		devs := types.Deviations{}
 		devs.AddDeviation(dev)
+		return devs, nil
 	case do.target != "":
-		devs, err = cl.GetDeviationsByTarget(ctx, do.namespace, do.target)
-		if err != nil {
-			return nil, err
-		}
+		return cl.GetDeviationsByTarget(ctx, do.namespace, do.target)
 	default:
-		return nil, fmt.Errorf("deviation or target not set")
+		return nil, ErrDeviationOrTargetNotSet
 	}
+}
 
-	if !devs.HasDeviations() {
-		return nil, fmt.Errorf("no deviations found")
-	}
+func buildInteractiveFinderOptions(deviations types.DeviationSlice, allDeviations types.Deviations, do *DeviationOptions) []fuzzyfinder.Option {
+	maxNameLength := allDeviations.MaxDeviationNameLength()
+	viewCfg := buildDeviationViewConfig(allDeviations, deviations, do, maxNameLength)
 
-	// collect all the deviations into a single slice for fuzzy finding
-	deviations := devs.Items()
-
-	// determine the maximum length of the deviation names to help with formatting the display
-	maxNameLength := devs.MaxDeviationNameLength()
-	opts := []fuzzyfinder.Option{}
-
-	viewCfg := buildDeviationViewConfig(devs, deviations, do, maxNameLength)
-	opts = append(opts,
+	opts := []fuzzyfinder.Option{
 		fuzzyfinder.WithHeader(viewCfg.header),
 		fuzzyfinder.WithSearchItemFunc(viewCfg.searchItem),
 		fuzzyfinder.WithPreviewVisible(do.Preview()),
 		getPreviewOpt(deviations),
-	)
+	}
 
 	if do.InitialQuery() != "" {
 		opts = append(opts, fuzzyfinder.WithQuery(do.InitialQuery()))
 	}
 
-	if do.PreSelect() != "" {
+	if len(do.SelectPathPrefix()) > 0 {
 		opts = append(opts, fuzzyfinder.WithPreselected(func(i int) bool {
-			x := strings.HasPrefix(deviations[i].Path, do.PreSelect())
-			return x
+			for _, prefix := range do.SelectPathPrefix() {
+				if prefix == "" {
+					continue
+				}
+				if strings.HasPrefix(deviations[i].Path, prefix) {
+					return true
+				}
+			}
+			return false
 		}))
+		if do.AutoAcceptSelectPathPrefix() {
+			opts = append(opts, fuzzyfinder.WithAutoAcceptPreselected())
+		}
 	}
 
-	// Use fuzzy finder with multi-select to choose deviations to display
+	return opts
+}
+
+func selectDeviationsInteractive(deviations types.DeviationSlice, allDeviations types.Deviations, do *DeviationOptions) (types.Deviations, error) {
+	viewCfg := buildDeviationViewConfig(allDeviations, deviations, do, allDeviations.MaxDeviationNameLength())
+	opts := buildInteractiveFinderOptions(deviations, allDeviations, do)
 	idxs, err := findDeviationIndexes(deviations, viewCfg.display, opts...)
 	if err != nil {
 		return nil, err
@@ -163,10 +173,38 @@ func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.D
 		return nil, nil
 	}
 
-	// Collect selected deviations based on selected indexes
-	selectedDeviations := deviations.FilterByIndexes(idxs)
+	return deviations.FilterByIndexes(idxs), nil
+}
 
-	// If revert is requested, clear the deviations
+// Run executes the deviation selection and returns the selected deviations
+func Run(ctx context.Context, cl DeviationClient, do *DeviationOptions) (types.Deviations, error) {
+	var err error
+	devs, err := loadDeviations(ctx, cl, do)
+	if err != nil {
+		return nil, err
+	}
+
+	if !devs.HasDeviations() {
+		return nil, ErrNoDeviationsFound
+	}
+
+	// collect all the deviations into a single slice for fuzzy finding
+	deviations := devs.Items()
+	deviations = deviations.FilterByPathPrefixes(do.FilterPath())
+	if len(deviations) == 0 {
+		return nil, ErrNoDeviationsAfterPathFiltering
+	}
+
+	var selectedDeviations types.Deviations
+	if do.Interactive() {
+		selectedDeviations, err = selectDeviationsInteractive(deviations, devs, do)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		selectedDeviations = deviations.ToDeviations()
+	}
+
 	if do.Revert() && selectedDeviations.HasDeviations() {
 		return nil, revert(ctx, cl, do.namespace, selectedDeviations.First().Target(), selectedDeviations)
 	}

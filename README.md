@@ -110,20 +110,33 @@ kubectl sdc runningconfig --target srl1 --format xpath
 ```
 
 ### deviation
-The deviation command provides an interactive view of the defined deviations. Deviations are auto completed from the k8s resources and can be previewed with details.
+The deviation command lists and optionally reverts deviations.
+
+By default, the command is **non-interactive**: it outputs all matching deviations directly.
+Use `--interactive` to open the fuzzy finder selector.
 
 It takes one of the following parameters:
 - `--target`: shows all deviations for the specified target and limits `--deviation` autocompletion to deviations from that target.
 - `--deviation`: shows only the specified deviation resource.
 
 At least one of `--target` or `--deviation` must be provided.
-The `--format` flag controls the output format. Supported values are `text` (default), `resource-yaml`, and `resource-json`.
-The `--preview` flag toggles the details preview panel for the currently selected path.
-The `--revert` flag clears the selected deviations on the target.
-The `--query` flag sets the initial fuzzy finder search query when the interactive view opens.
-The `--preselect` flag pre-selects all deviation paths that start with the given prefix when the interactive view opens.
+
+Flags:
+- `--format`: output format (`text` (default), `resource-yaml`, `resource-json`).
+- `--filter-path`: filter deviation paths by prefix before selection/output. Can be repeated.
+- `--revert`: clear the final selected/output deviations on the target.
+- `--interactive`: enable interactive fuzzy finder mode.
+- `--preview`: show preview panel in interactive mode.
+- `--query`: initial fuzzy finder query in interactive mode.
+- `--select-path-prefix`: mark matching path prefixes as selected in interactive mode. Can be repeated.
+- `--auto-accept-select-path-prefix`: automatically confirm selected path prefixes in interactive mode.
 
 `--revert` can be used with `--target`, `--deviation`, or both, and is compatible with `--preview`.
+
+Mode behavior:
+- Non-interactive (default): output all deviations after applying `--filter-path`.
+- Interactive (`--interactive`): choose deviations in fuzzy finder; `--select-path-prefix` and `--query` apply here.
+- `--select-path-prefix` and `--auto-accept-select-path-prefix` require `--interactive`.
 
 Selection notes:
 - The preview shows the actual and desired value for the currently selected path.
@@ -131,78 +144,53 @@ Selection notes:
 - When `--format=resource-yaml` or `--format=resource-json`, exiting the interactive window prints a `TargetClearDeviation` manifest built from the selected entries.
 - When `--revert` is set, the selected entries are cleared on the target.
 
-Keyboard shortcuts:
+Interactive quick keys:
+- `Tab` toggle selection
+- `Enter` confirm selection
+- `Esc` / `Ctrl+C` abort
+- `Ctrl+T` toggle preview
+- `Ctrl+S` toggle selected-items view
 
-Navigation:
-- `↑` / `Ctrl+P` / `Ctrl+K` — move up
-- `↓` / `Ctrl+N` / `Ctrl+J` — move down
-- `PgUp` / `PgDn` — page up / page down
-- `Shift+←` / `Shift+→` — scroll list horizontally
+Flag overview:
 
-Selection:
-- `Tab` — toggle selection for the current item (multi-select)
-- `Ctrl+S` — toggle between all-items view and selected-items view
-- `Enter` — confirm selection and exit
-- `Esc` / `Ctrl+C` / `Ctrl+D` — abort and exit
-
-Search query:
-- `←` / `Ctrl+B` — move cursor left in query
-- `→` / `Ctrl+F` — move cursor right in query
-- `Home` / `Ctrl+A` — jump to start of query
-- `End` / `Ctrl+E` — jump to end of query
-- `Backspace` — delete previous character
-- `Delete` — delete current character
-- `Ctrl+W` — delete previous word
-- `Ctrl+U` — clear query from cursor to beginning
-- `Ctrl+O` — toggle searching paths only vs. paths and values
-
-Preview:
-- `Ctrl+T` — toggle preview window visibility
-
-Example (preview a deviation):
-```
-kubectl sdc deviation --deviation srl1 --preview
-
-  Namespace: default, Deviation: srl1 [target]                                                           ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/description                            │ Path:    /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                     │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/action/accept                          │ Actual:  Drop all else                                                                                │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/sequence-id                             │ Desired:                                                                                              │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/protocol                     │ Reason:  UNHANDLED                                                                                    │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/icmp/type                    │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/description                             │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/action/accept/rate-limit/system-cpu-p.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/sequence-id                            │                                                                                                       │
- >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/val.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/ope.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/ipv4/protocol                    │                                                                                                       │
- >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description                            │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/action/accept                          │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/sequence-id                           │                                                                                                       │
->>[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                           │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/log                            │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/drop                           │                                                                                                       │
-  739/739                                                                                                │                                                                                                       │
->                                                                                                        └───────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-# Output after exit (stdout)
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/value
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description
-```
+| Flag | Mode | Purpose |
+|---|---|---|
+| `--interactive` | Interactive | Open fuzzy finder selection UI |
+| `--filter-path` | Both | Filter deviation paths by prefix before selection/output |
+| `--select-path-prefix` | Interactive | Mark matching path prefixes as selected |
+| `--auto-accept-select-path-prefix` | Interactive | Auto-confirm when `--select-path-prefix` matches |
+| `--query` | Interactive | Seed fuzzy finder with an initial query |
+| `--preview` | Interactive | Show details preview panel |
+| `--revert` | Both | Clear final selected/output deviations on target |
 
 Example (show all deviations for a target):
 ```bash
 kubectl sdc deviation --target srl1
 ```
 
+Example (non-interactive with path filtering):
+```bash
+kubectl sdc deviation --target srl1 --filter-path /interface --filter-path /system
+```
+
 Example (start the interactive view with an initial query):
 ```bash
-kubectl sdc deviation --target srl1 --query interface
+kubectl sdc deviation --target srl1 --interactive --query interface
+```
+
+Example (interactive with selected path prefixes and auto-accept):
+```bash
+kubectl sdc deviation --target srl1 --interactive --select-path-prefix /interface --auto-accept-select-path-prefix
 ```
 
 Example (render selected deviations as a `TargetClearDeviation` manifest):
 ```bash
 kubectl sdc deviation --target srl1 --format resource-yaml
+```
+
+Example (interactive preview flow):
+```bash
+kubectl sdc deviation --deviation srl1 --interactive --preview
 ```
 
 ### apply
