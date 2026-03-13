@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	sdcioCmd "github.com/sdcio/kubectl-sdc/pkg/cmd"
+	sdcCmd "github.com/sdcio/kubectl-sdc/pkg/cmd"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
@@ -38,17 +38,22 @@ func main() {
 		},
 	}
 
-	blameCmd, err := sdcioCmd.NewCmdBlame(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	blameCmd, err := sdcCmd.NewCmdBlame(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	if err != nil {
 		panic(err)
 	}
 	root.AddCommand(blameCmd)
-	deviationCmd, err := sdcioCmd.NewCmdDeviation(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	deviationCmd, err := sdcCmd.NewCmdDeviation(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	if err != nil {
 		panic(err)
 	}
 	root.AddCommand(deviationCmd)
-	runningConfigCmd, err := sdcioCmd.NewCmdRunningConfig(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	applyCmd, err := sdcCmd.NewCmdApply(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	if err != nil {
+		panic(err)
+	}
+	root.AddCommand(applyCmd)
+	runningConfigCmd, err := sdcCmd.NewCmdRunningConfig(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	if err != nil {
 		panic(err)
 	}

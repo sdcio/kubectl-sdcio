@@ -15,8 +15,11 @@ MOCKDIR = ./mocks
 .PHONY: mocks-gen
 mocks-gen: mocks-rm ## Generate mocks for all the defined interfaces.
 	mkdir -p $(MOCKDIR)
+	mkdir -p $(MOCKDIR)/blame $(MOCKDIR)/apply $(MOCKDIR)/deviations
 	go install go.uber.org/mock/mockgen@latest
 	mockgen -package=mockblame -source=pkg/commands/blame/blame.go -destination=$(MOCKDIR)/blame/blame.go
+	mockgen -package=mockapply -source=pkg/commands/apply/apply.go -destination=$(MOCKDIR)/apply/apply.go
+	mockgen -package=mockdeviations -source=pkg/commands/deviations/deviations.go -destination=$(MOCKDIR)/deviations/deviations.go
 
 .PHONY: mocks-rm
 mocks-rm: ## remove generated mocks

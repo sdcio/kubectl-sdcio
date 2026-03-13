@@ -215,8 +215,8 @@ github.com/sdcio/config-server v0.0.56-0.20260306131400-036f632d2a7b h1:HcLz2vgV
 github.com/sdcio/config-server v0.0.56-0.20260306131400-036f632d2a7b/go.mod h1:IgU/N1OlGu+UsC0ACTMqXJlWg4Xsvj7pGfW7uw2iUf8=
 github.com/sdcio/logger v0.0.3 h1:IFUbObObGry+S8lHGwOQKKRxJSuOphgRU/hxVhOdMOM=
 github.com/sdcio/logger v0.0.3/go.mod h1:yWaOxK/G6vszjg8tKZiMqiEjlZouHsjFME4zSk+SAEA=
-github.com/sdcio/sdc-protos v0.0.51-0.20260304120533-f0e62d96331e h1:oe0q40PuBLd4M7X9D5UHnfhN0Tv/RXZE/eQOKOSIlCw=
-github.com/sdcio/sdc-protos v0.0.51-0.20260304120533-f0e62d96331e/go.mod h1:huh1QVE023w+reU2Gt6h1f83R3lJidcFLbQje7cMY1M=
+github.com/sdcio/sdc-protos v0.0.51-0.20260312105324-fdf21a9d8280 h1:a/CbO9YXghOyd1H8ieX2p9j3dgBzhXXiUrl55kX9WLM=
+github.com/sdcio/sdc-protos v0.0.51-0.20260312105324-fdf21a9d8280/go.mod h1:huh1QVE023w+reU2Gt6h1f83R3lJidcFLbQje7cMY1M=
 github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 h1:n661drycOFuPLCN3Uc8sB6B/s6Z4t2xvBgU1htSHuq8=
 github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
@@ -228,8 +228,8 @@ github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiT
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/pflag v1.0.10 h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=
 github.com/spf13/pflag v1.0.10/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
-github.com/steiler/go-fuzzyfinder v0.1.0 h1:w7R8E9QvvaKWK4eXpuf1ywe4U/ksuygkDIEaEk9vFQU=
-github.com/steiler/go-fuzzyfinder v0.1.0/go.mod h1:mBYDYEANq99SXtkTlEzN42fSJYfVQC7QJGj9QZdmpnw=
+github.com/steiler/go-fuzzyfinder v0.3.0 h1:NvpaDb8008O1HmRaW0ItsDqtq4dpBGGqW9PrMAo63os=
+github.com/steiler/go-fuzzyfinder v0.3.0/go.mod h1:mBYDYEANq99SXtkTlEzN42fSJYfVQC7QJGj9QZdmpnw=
 github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

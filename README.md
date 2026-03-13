@@ -6,7 +6,6 @@ kubectl-sdc is the SDC specific kubectl plugin.
 
 ## notes
 - Commands use the current kubectl config to access the cluster and namespace.
-- Shell completion is available for `runningconfig` (`--target`, `--format`) and `deviation` (`--deviation`).
 - `runningconfig` connects to `sdc-system/data-server` via port-forward.
 
 ## subcommands
@@ -16,13 +15,14 @@ kubectl-sdc provides the following functionalities.
 The blame command provides a tree based view on the actual running device configuration of the given SDC target.
 
 It takes the `--target` parameter, that defines which targets is to be displayed.
+The `--format` parameter supports `tree` (default) and `xpath`; with `--format=xpath`, the `--interactive` flag opens a fuzzyfinder with multi-select (`Tab` to select) and prints the selected XPath lines.
 
 For every configured attribute you will see the highes preference value as well as the source of that value.
 - `running` are attributes that come from the device itself, where no intent exist in sdc.
 - `default` is all the default values that are present in the config, that are not overwritten by any specific config.
 - `<namespace>.<intentname>` is the reference to the intent that defined the actual highes preference value for that config attribute.
 ```
-kubectl sdc blame --target srl1 --filter-owner running --format tree  --filter-path /interface[name=mgmt0]/subinterface --filter-path /system/snmp/access-group[name=SNMPv2-RO-Community] --filter-owner default --filter-leaf admin*
+kubectl sdc blame --target srl1 --filter-owner running --format tree --filter-path /interface[name=mgmt0]/subinterface --filter-path /system/snmp/access-group[name=SNMPv2-RO-Community] --filter-owner default --filter-leaf admin*
   -----    │     🎯 default.srl1
   -----    │     ├── 📦 interface
   -----    │     │   └── 🔑 name=mgmt0
@@ -69,7 +69,7 @@ The whole path (including leaves) is involved in the pattern matching.
 kubectl sdc blame --target sros --filter-leaf "admin-state" --filter-owner "running"
 
 # Show all interface-related configuration with deviations
-kubectl sdc blame --target sros --filter-path "*/interface/*" --deviation
+kubectl sdc blame --target sros --filter-path "*/interface/*" --filter-deviation
 
 # Show configuration from specific intent with timeout-related leaves
 kubectl sdc blame --target sros --filter-owner "production.intent-emergency" --filter-leaf "*timeout*"
@@ -87,7 +87,6 @@ The `--format` parameter controls the output format (json, json_ietf, xml, xpath
 Hints:
 - The command uses the current kubectl config to access the cluster and namespace.
 - The command connects to the `sdc-system/data-server` service (port-forward) to fetch the running config.
-- Shell completion is available for `--target` and `--format`.
 
 Example:
 ```
@@ -111,49 +110,139 @@ kubectl sdc runningconfig --target srl1 --format xpath
 ```
 
 ### deviation
-The deviation command provides an xpath based view of the defined deviations. Deviations are auto completed from the k8s resources and can be previewed with details.
+The deviation command lists and optionally reverts deviations.
 
-It takes the `--deviation` parameter, that defines which deviation is to be displayed.
-The `--preview` flag toggles the details preview panel for the currently selected path.
+By default, the command is **non-interactive**: it outputs all matching deviations directly.
+Use `--interactive` to open the fuzzy finder selector.
+
+It takes one of the following parameters:
+- `--target`: shows all deviations for the specified target and limits `--deviation` autocompletion to deviations from that target.
+- `--deviation`: shows only the specified deviation resource.
+
+At least one of `--target` or `--deviation` must be provided.
+
+Flags:
+- `--format`: output format (`text` (default), `resource-yaml`, `resource-json`).
+- `--filter-path`: filter deviation paths by prefix before selection/output. Can be repeated.
+- `--revert`: clear the final selected/output deviations on the target.
+- `--interactive`: enable interactive fuzzy finder mode.
+- `--preview`: show preview panel in interactive mode.
+- `--query`: initial fuzzy finder query in interactive mode.
+- `--select-path-prefix`: mark matching path prefixes as selected in interactive mode. Can be repeated.
+- `--auto-accept-select-path-prefix`: automatically confirm selected path prefixes in interactive mode.
+
+`--revert` can be used with `--target`, `--deviation`, or both, and is compatible with `--preview`.
+
+Mode behavior:
+- Non-interactive (default): output all deviations after applying `--filter-path`.
+- Interactive (`--interactive`): choose deviations in fuzzy finder; `--select-path-prefix` and `--query` apply here.
+- `--select-path-prefix` and `--auto-accept-select-path-prefix` require `--interactive`.
 
 Selection notes:
 - The preview shows the actual and desired value for the currently selected path.
-- When you exit the interactive window, the selected paths are printed to stdout.
+- When `--format=text`, exiting the interactive window prints the current human-readable deviation output.
+- When `--format=resource-yaml` or `--format=resource-json`, exiting the interactive window prints a `TargetClearDeviation` manifest built from the selected entries.
+- When `--revert` is set, the selected entries are cleared on the target.
 
-Keyboard shortcuts:
-- Tab selects entries (multi selection is supported).
-- Shift + Left/Right Arrow horizontally scrolls the list.
-- Ctrl + O toggles searching for paths only vs paths and values.
+Interactive quick keys:
+- `Tab` toggle selection
+- `Enter` confirm selection
+- `Esc` / `Ctrl+C` abort
+- `Ctrl+T` toggle preview
+- `Ctrl+S` toggle selected-items view
 
-Example (preview a deviation):
+Flag overview:
+
+| Flag | Mode | Purpose |
+|---|---|---|
+| `--interactive` | Interactive | Open fuzzy finder selection UI |
+| `--filter-path` | Both | Filter deviation paths by prefix before selection/output |
+| `--select-path-prefix` | Interactive | Mark matching path prefixes as selected |
+| `--auto-accept-select-path-prefix` | Interactive | Auto-confirm when `--select-path-prefix` matches |
+| `--query` | Interactive | Seed fuzzy finder with an initial query |
+| `--preview` | Interactive | Show details preview panel |
+| `--revert` | Both | Clear final selected/output deviations on target |
+
+Example (show all deviations for a target):
+```bash
+kubectl sdc deviation --target srl1
 ```
-kubectl sdc deviation --deviation srl1 --preview
 
-  Namespace: default, Deviation: srl1 [target]                                                           ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/description                            │ Path:    /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                     │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=110]/action/accept                          │ Actual:  Drop all else                                                                                │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/sequence-id                             │ Desired:                                                                                              │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/protocol                     │ Reason:  UNHANDLED                                                                                    │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/match/ipv4/icmp/type                    │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/description                             │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=10]/action/accept/rate-limit/system-cpu-p.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/sequence-id                            │                                                                                                       │
- >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/val.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/ope.. │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/ipv4/protocol                    │                                                                                                       │
- >[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description                            │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/action/accept                          │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/sequence-id                           │                                                                                                       │
->>[U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description                           │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/log                            │                                                                                                       │
-  [U] /acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/action/drop                           │                                                                                                       │
-  739/739                                                                                                │                                                                                                       │
->                                                                                                        └───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Example (non-interactive with path filtering):
+```bash
+kubectl sdc deviation --target srl1 --filter-path /interface --filter-path /system
+```
 
-# Output after exit (stdout)
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/match/transport/destination-port/value
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=100]/description
-/acl/acl-filter[name=cpm][type=ipv4]/entry[sequence-id=1000]/description
+Example (start the interactive view with an initial query):
+```bash
+kubectl sdc deviation --target srl1 --interactive --query interface
+```
+
+Example (interactive with selected path prefixes and auto-accept):
+```bash
+kubectl sdc deviation --target srl1 --interactive --select-path-prefix /interface --auto-accept-select-path-prefix
+```
+
+Example (render selected deviations as a `TargetClearDeviation` manifest):
+```bash
+kubectl sdc deviation --target srl1 --format resource-yaml
+```
+
+Example (interactive preview flow):
+```bash
+kubectl sdc deviation --deviation srl1 --interactive --preview
+```
+
+### apply
+The apply command applies resources from YAML or JSON files, similar to kubectl apply.
+
+Currently supported resource kinds:
+- `TargetClearDeviation` (config.sdcio.dev/v1alpha1)
+
+Input options:
+- `-f`, `--filename`: one or more files to apply.
+- Positional arguments are also accepted as file paths.
+- Use `-` to read from stdin.
+
+Behavior notes:
+- Multi-document YAML files are supported.
+- If a `TargetClearDeviation` manifest omits `metadata.namespace`, the current kubectl namespace is used.
+- The command sends the resource to the target `cleardeviation` subresource.
+
+Examples:
+
+Apply from a file:
+```bash
+kubectl sdc apply -f clear-dev.yaml
+```
+
+Apply from multiple files:
+```bash
+kubectl sdc apply -f clear-dev-1.yaml -f clear-dev-2.yaml
+```
+
+Apply using positional file arguments:
+```bash
+kubectl sdc apply clear-dev.yaml another-dev.yaml
+```
+
+Apply from stdin:
+```bash
+cat clear-dev.yaml | kubectl sdc apply -f -
+```
+
+Example `TargetClearDeviation` manifest:
+```yaml
+apiVersion: config.sdcio.dev/v1alpha1
+kind: TargetClearDeviation
+metadata:
+  name: srl1
+spec:
+  config:
+    - name: intent-a
+      paths:
+        - /interface[name=ethernet-1/1]/admin-state
+        - /system/name
 ```
 
 ## Join us

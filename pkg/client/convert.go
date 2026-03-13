@@ -4,12 +4,25 @@ import (
 	"fmt"
 
 	"github.com/sdcio/config-server/apis/config/v1alpha1"
+
 	"github.com/sdcio/kubectl-sdc/pkg/types"
 	"github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-func ConvertDeviations(d *v1alpha1.Deviation) (*types.Deviations, error) {
+func ConvertDeviations(devs *v1alpha1.DeviationList) (types.Deviations, error) {
+	result := types.Deviations{}
+	for _, dev := range devs.Items {
+		intentDev, err := ConvertDeviationIntent(&dev)
+		if err != nil {
+			return nil, err
+		}
+		result.AddDeviation(intentDev)
+	}
+	return result, nil
+}
+
+func ConvertDeviationIntent(d *v1alpha1.Deviation) (*types.IntentDeviations, error) {
 	if d.Spec.DeviationType == nil {
 		return nil, fmt.Errorf("deviation type field is nil for deviation %s", d.GetName())
 	}
@@ -19,9 +32,9 @@ func ConvertDeviations(d *v1alpha1.Deviation) (*types.Deviations, error) {
 	}
 
 	// extract target name via label
-	target, ok := d.Labels["config.sdcio.dev/targetName"]
+	target, ok := d.Labels[TargetLabel]
 	if !ok {
-		return nil, fmt.Errorf("deviation %s is missing the target label 'config.sdcio.dev/targetName'", d.Name)
+		return nil, fmt.Errorf("deviation %s is missing the target label %q", d.Name, TargetLabel)
 	}
 
 	result := types.NewDeviations(target, d.GetName(), dt, len(d.Spec.Deviations)).SetNamespace(d.GetNamespace())
